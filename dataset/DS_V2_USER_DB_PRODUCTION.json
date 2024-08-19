@@ -1,0 +1,27 @@
+{
+	"name": "DS_V2_USER_DB_PRODUCTION",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"table_name": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "V2 Datasets"
+		},
+		"annotations": [],
+		"type": "AzurePostgreSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "public",
+			"table": {
+				"value": "@dataset().table_name",
+				"type": "Expression"
+			}
+		}
+	}
+}
