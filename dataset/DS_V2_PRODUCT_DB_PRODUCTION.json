@@ -5,6 +5,11 @@
 			"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"table_name": {
+				"type": "string"
+			}
+		},
 		"folder": {
 			"name": "V2 Datasets"
 		},
