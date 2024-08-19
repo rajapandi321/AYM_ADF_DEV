@@ -5,6 +5,11 @@
 			"referenceName": "LS_V2_PRODUCTION_SERVER",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"table_name": {
+				"type": "string"
+			}
+		},
 		"folder": {
 			"name": "V2 Datasets"
 		},
@@ -146,7 +151,10 @@
 		],
 		"typeProperties": {
 			"schema": "public",
-			"table": "order_address"
+			"table": {
+				"value": "@dataset().table_name",
+				"type": "Expression"
+			}
 		}
 	}
 }
