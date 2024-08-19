@@ -22,6 +22,12 @@
 		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"value": "https://azecom2np-keyvault.vault.azure.net/"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
 		}
 	}
 }
