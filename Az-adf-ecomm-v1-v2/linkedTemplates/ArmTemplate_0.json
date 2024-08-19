@@ -114,7 +114,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2__ORDER_DB_PRODUCTION')]",
+			"name": "[concat(parameters('factoryName'), '/DS_V2_ORDER_DB_PRODUCTION')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -489,7 +489,7 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2__ORDER_DB_PRODUCTION",
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {}
 							}
@@ -506,7 +506,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2__ORDER_DB_PRODUCTION')]"
+				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
 			]
 		}
 	]
