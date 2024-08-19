@@ -15,8 +15,38 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
-				}
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT ppv.id,\n       ppv.created_at,\n       ppv.item_id AS inventory_modifier_id,\n       ppv.whodunnit AS user_id,\n\t   pim.product_id,\n\t   pim.rule_supermarket_id as supermarket_id,\n       ppv.object_changes,\n       (ppv.object_changes->'action_price'->>0)::numeric AS action_price,\n       (ppv.object_changes->'action_price'->>1)::numeric AS updated_action_price,\n       (ppv.object_changes->'action_sale_price'->>0)::numeric AS sale_price,\n       (ppv.object_changes->'action_sale_price'->>1)::numeric AS updated_sale_price,\n       ppv.event\nFROM spree_product_price_versions ppv\nleft join spree_product_inventory_modifiers pim\non pim.id = ppv.item_id\norder by ppv.id;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"folder": {
