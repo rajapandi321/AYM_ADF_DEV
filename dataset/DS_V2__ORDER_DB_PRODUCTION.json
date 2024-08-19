@@ -5,6 +5,9 @@
 			"referenceName": "LS_V2_PRODUCTION_SERVER",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "Order DS V2"
+		},
 		"annotations": [],
 		"type": "AzurePostgreSqlTable",
 		"schema": [
