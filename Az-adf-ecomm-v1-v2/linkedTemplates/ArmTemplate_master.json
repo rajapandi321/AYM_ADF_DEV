@@ -21,6 +21,16 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=product-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		},
+		"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_PRODUCTION_SERVER'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		},
 		"LS_V1_PRODUCTION_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "ec2-34-243-193-35.eu-west-1.compute.amazonaws.com"
@@ -72,6 +82,12 @@
 					},
 					"LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString')]"
+					},
+					"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
+						"value": "[parameters('LS_V2_USER_DB_PRODUCTION_SERVER_connectionString')]"
+					},
+					"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
+						"value": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]"
 					},
 					"LS_V1_PRODUCTION_properties_typeProperties_server": {
 						"value": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_server')]"
