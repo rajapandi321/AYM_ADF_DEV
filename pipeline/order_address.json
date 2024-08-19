@@ -215,7 +215,10 @@
 				"outputs": [
 					{
 						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order_address"
+						}
 					}
 				]
 			}
