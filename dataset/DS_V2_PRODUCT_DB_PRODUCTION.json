@@ -1,0 +1,15 @@
+{
+	"name": "DS_V2_PRODUCT_DB_PRODUCTION",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "V2 Datasets"
+		},
+		"annotations": [],
+		"type": "AzurePostgreSqlTable",
+		"schema": []
+	}
+}
