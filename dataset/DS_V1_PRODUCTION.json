@@ -1,6 +1,10 @@
 {
 	"name": "DS_V1_PRODUCTION",
 	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_V1_PRODUCTION",
+			"type": "LinkedServiceReference"
+		},
 		"folder": {
 			"name": "Order DS"
 		},
