@@ -1,0 +1,10 @@
+{
+	"name": "LS_Danube_Key_Vault",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://azecom2np-keyvault.vault.azure.net/"
+		}
+	}
+}
