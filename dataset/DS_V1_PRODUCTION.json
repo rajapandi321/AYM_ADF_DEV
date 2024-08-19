@@ -5,9 +5,6 @@
 			"referenceName": "LS_V1_PRODUCTION",
 			"type": "LinkedServiceReference"
 		},
-		"folder": {
-			"name": "Order DS"
-		},
 		"annotations": [],
 		"type": "PostgreSqlV2Table",
 		"schema": []
