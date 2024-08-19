@@ -1,0 +1,9 @@
+{
+	"name": "Az-adf-ecomm-v1-v2",
+	"location": "uaenorth",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "e962e017-851f-48fe-915c-02ee760ebaf2",
+		"tenantId": "a57b09f3-dbb7-48b4-a6d8-f9812ce62806"
+	}
+}
