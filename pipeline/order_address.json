@@ -1,0 +1,9 @@
+{
+	"name": "order_address",
+	"properties": {
+		"folder": {
+			"name": "Order DB"
+		},
+		"annotations": []
+	}
+}

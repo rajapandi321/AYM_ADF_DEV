@@ -1,0 +1,11 @@
+{
+	"name": "DS_V1_PRODUCTION",
+	"properties": {
+		"folder": {
+			"name": "Order DS"
+		},
+		"annotations": [],
+		"type": "PostgreSqlV2Table",
+		"schema": []
+	}
+}
