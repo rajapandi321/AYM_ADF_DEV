@@ -31,7 +31,9 @@
 						"mappings": [
 							{
 								"source": {
-									"name": ""
+									"name": "order_id",
+									"type": "Int32",
+									"physicalType": "integer"
 								},
 								"sink": {
 									"name": "order_id",
@@ -41,7 +43,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "address_id",
+									"type": "Int32",
+									"physicalType": "integer"
 								},
 								"sink": {
 									"name": "address_id",
@@ -51,7 +55,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "is_bill_address",
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "is_bill_address",
@@ -61,7 +67,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "city",
+									"type": "String",
+									"physicalType": "character varying"
 								},
 								"sink": {
 									"name": "city",
@@ -71,7 +79,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "country",
+									"type": "String",
+									"physicalType": "character varying"
 								},
 								"sink": {
 									"name": "country",
@@ -81,7 +91,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "district",
+									"type": "String",
+									"physicalType": "character varying"
 								},
 								"sink": {
 									"name": "district",
@@ -91,7 +103,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "type",
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "type",
@@ -101,7 +115,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "formatted_address",
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "formatted_address",
@@ -111,7 +127,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "latitude",
+									"type": "Double",
+									"physicalType": "double precision"
 								},
 								"sink": {
 									"name": "latitude",
@@ -121,7 +139,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "longitude",
+									"type": "Double",
+									"physicalType": "double precision"
 								},
 								"sink": {
 									"name": "longitude",
@@ -131,7 +151,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "postal_code",
+									"type": "String",
+									"physicalType": "character varying"
 								},
 								"sink": {
 									"name": "postal_code",
@@ -141,7 +163,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "delivery_instruction",
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "delivery_instruction",
@@ -151,7 +175,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
 								},
 								"sink": {
 									"name": "created_at",
@@ -161,7 +187,9 @@
 							},
 							{
 								"source": {
-									"name": ""
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
 								},
 								"sink": {
 									"name": "updated_at",
