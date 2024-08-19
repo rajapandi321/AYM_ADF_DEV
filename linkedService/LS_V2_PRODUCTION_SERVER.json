@@ -4,7 +4,7 @@
 		"annotations": [],
 		"type": "AzurePostgreSql",
 		"typeProperties": {
-			"connectionString": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=postgres;UID=eccommercepostgres;EncryptionMethod=0",
+			"connectionString": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=order-db-prod;UID=eccommercepostgres;EncryptionMethod=0",
 			"password": {
 				"type": "AzureKeyVaultSecret",
 				"store": {
