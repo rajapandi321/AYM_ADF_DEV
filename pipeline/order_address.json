@@ -214,7 +214,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "DS_V2__ORDER_DB_PRODUCTION",
+						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
 						"type": "DatasetReference"
 					}
 				]

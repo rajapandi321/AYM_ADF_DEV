@@ -1,5 +1,5 @@
 {
-	"name": "DS_V2__ORDER_DB_PRODUCTION",
+	"name": "DS_V2_ORDER_DB_PRODUCTION",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "LS_V2_PRODUCTION_SERVER",
