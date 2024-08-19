@@ -6,7 +6,7 @@
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "Order DS V2"
+			"name": "V2 Datasets"
 		},
 		"annotations": [],
 		"type": "AzurePostgreSqlTable",
