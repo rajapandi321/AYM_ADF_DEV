@@ -903,6 +903,76 @@
 				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_DEV')]",
 				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/order_cancellation_reason')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "order_cancellation_reason table",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "WITH RankedResults AS (\n    SELECT\n        cancel_reason,\n        created_at,\n        updated_at,\n        ROW_NUMBER() OVER (PARTITION BY cancel_reason ORDER BY created_at DESC) AS rn\n    FROM spree_fulfilments\n    WHERE cancel_reason IS NOT NULL\n)\nSELECT\n    ROW_NUMBER() OVER () AS id,\n    cancel_reason AS reason_en,\n    '' AS reason_ar,\n    true AS visible,\n    created_at,\n    updated_at\nFROM RankedResults\nWHERE rn = 1\nORDER BY id ASC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "order_cancellation_reason"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+			]
 		}
 	]
 }
