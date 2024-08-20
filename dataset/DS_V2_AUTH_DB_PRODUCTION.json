@@ -11,7 +11,7 @@
 			}
 		},
 		"folder": {
-			"name": "V2 Datasets"
+			"name": "V2 Datasets Production"
 		},
 		"annotations": [],
 		"type": "AzurePostgreSqlTable",
