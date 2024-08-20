@@ -1,0 +1,18 @@
+{
+	"name": "LS_V2_AUTH_DB_DEV_SERVER",
+	"properties": {
+		"annotations": [],
+		"type": "AzurePostgreSql",
+		"typeProperties": {
+			"connectionString": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=user-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_Danube_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "db-password-dev"
+			}
+		}
+	}
+}
