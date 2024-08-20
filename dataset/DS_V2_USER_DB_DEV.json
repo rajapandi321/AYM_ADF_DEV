@@ -1,5 +1,5 @@
 {
-	"name": "DS_V2_AUTH_DB_DEV",
+	"name": "DS_V2_USER_DB_DEV",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "LS_V2_AUTH_DB_DEV_SERVER",
