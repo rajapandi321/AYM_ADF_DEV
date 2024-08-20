@@ -8,6 +8,9 @@
 		"LS_V1_PRODUCTION_password": {
 			"value": ""
 		},
+		"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
+			"value": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		},
 		"LS_V2_PRODUCTION_SERVER_connectionString": {
 			"value": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=order-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
@@ -17,8 +20,11 @@
 		"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 			"value": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
-		"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
-			"value": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
+			"value": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=user-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+		},
+		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
+			"value": "https://azecom2np-keyvault.vault.azure.net/"
 		},
 		"LS_V1_PRODUCTION_properties_typeProperties_server": {
 			"value": "ec2-34-243-193-35.eu-west-1.compute.amazonaws.com"
@@ -28,9 +34,6 @@
 		},
 		"LS_V1_PRODUCTION_properties_typeProperties_username": {
 			"value": "readonly_cred"
-		},
-		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
-			"value": "https://azecom2np-keyvault.vault.azure.net/"
 		},
 		"containerUri": {
 			"value": ""

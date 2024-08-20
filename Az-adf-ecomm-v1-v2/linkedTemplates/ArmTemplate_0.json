@@ -11,6 +11,11 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'LS_V1_PRODUCTION'"
 		},
+		"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_PRODUCTION_SERVER'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		},
 		"LS_V2_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCTION_SERVER'",
@@ -26,10 +31,14 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
-		"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
+		"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
 			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_PRODUCTION_SERVER'",
-			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_DEV_SERVER'",
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=user-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+		},
+		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://azecom2np-keyvault.vault.azure.net/"
 		},
 		"LS_V1_PRODUCTION_properties_typeProperties_server": {
 			"type": "string",
@@ -42,16 +51,25 @@
 		"LS_V1_PRODUCTION_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "readonly_cred"
-		},
-		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
-			"type": "string",
-			"defaultValue": "https://azecom2np-keyvault.vault.azure.net/"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_Danube_Key_Vault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/LS_V1_PRODUCTION')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -75,19 +93,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/LS_Danube_Key_Vault')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureKeyVault",
-				"typeProperties": {
-					"baseUrl": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/DS_V1_PRODUCTION')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -103,6 +108,29 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_V1_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_PRODUCTION_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
 			]
 		},
 		{
@@ -175,26 +203,58 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_PRODUCTION_SERVER')]",
+			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_DEV_SERVER')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
 				"type": "AzurePostgreSql",
 				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]",
+					"connectionString": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]",
 					"password": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
 							"referenceName": "LS_Danube_Key_Vault",
 							"type": "LinkedServiceReference"
 						},
-						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+						"secretName": "db-password-dev"
 					}
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_V2_AUTH_DB_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "V2 Datasets Production"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
 			]
 		},
 		{
@@ -212,7 +272,7 @@
 					}
 				},
 				"folder": {
-					"name": "V2 Datasets"
+					"name": "V2 Datasets Production"
 				},
 				"annotations": [],
 				"type": "AzurePostgreSqlTable",
@@ -377,7 +437,7 @@
 					}
 				},
 				"folder": {
-					"name": "V2 Datasets"
+					"name": "V2 Datasets Production"
 				},
 				"annotations": [],
 				"type": "AzurePostgreSqlTable",
@@ -409,7 +469,7 @@
 					}
 				},
 				"folder": {
-					"name": "V2 Datasets"
+					"name": "V2 Datasets Production"
 				},
 				"annotations": [],
 				"type": "AzurePostgreSqlTable",
@@ -427,12 +487,12 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_AUTH_DB_PRODUCTION')]",
+			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_DEV')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"linkedServiceName": {
-					"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
+					"referenceName": "LS_V2_AUTH_DB_DEV_SERVER",
 					"type": "LinkedServiceReference"
 				},
 				"parameters": {
@@ -441,7 +501,7 @@
 					}
 				},
 				"folder": {
-					"name": "V2 Datasets"
+					"name": "V2 Datasets DEV"
 				},
 				"annotations": [],
 				"type": "AzurePostgreSqlTable",
@@ -455,7 +515,7 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_DEV_SERVER')]"
 			]
 		},
 		{
@@ -770,6 +830,78 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
 				"[concat(variables('factoryId'), '/datasets/DS_V2_PRODUCT_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/currency')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_DEV",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "currency"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "currency"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_DEV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
 			]
 		}
 	]
