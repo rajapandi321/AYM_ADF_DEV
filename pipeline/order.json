@@ -1,0 +1,60 @@
+{
+	"name": "order",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT \n    a.id,\n    a.item_total,\n    a.total,\n    CASE\n        WHEN a.state='delivery' THEN 'delivered'\n        WHEN a.state='picking_and_staging_in_progress' THEN 'pending'\n        WHEN a.state='payment' THEN 'pending'\n        WHEN a.state='complete' THEN 'completed'\n        WHEN a.state='confirm' THEN 'pending'\n--         WHEN a.state='cart' THEN 'pending'\n        WHEN a.state='canceled' THEN 'customer_cancelled'\n    END AS status,\n    a.user_id,\n    a.completed_at,\n    a.bill_address_id,\n    a.ship_address_id,\n    a.payment_total,\n    a.created_at,\n    a.updated_at,\n    a.currency,\n    a.item_count,\n    a.canceled_at as cancelled_at,\n    a.canceler_id as cancelled_by,\n\tCASE WHEN a.delivery_method='home_delivery' THEN 1\n\tWHEN a.delivery_method='store_pick_up' THEN 2\n\tELSE NULL END as delivery_option_id,\n    ca.id as order_cancellation_reason_id,\n    COALESCE(f.id) AS city_id,\n    COALESCE(e.country_id,'1') as country_id,\n    sp_max.payment_method_id as payment_option_id, \n    1 as language_id\nFROM spree_orders a\nLEFT JOIN spree_shipping_methods b ON b.name = a.delivery_method\nLEFT JOIN spree_fulfilments c ON c.order_id = a.id\nleft join order_cancellation_reason ca on ca.reason_en = c.cancel_reason\t--Cross DB Table\nLEFT JOIN spree_user_addresses d ON d.user_id = a.user_id AND d.default = 'true'\nLEFT JOIN spree_addresses e ON e.id = d.address_id \nleft Join city f on f.name= e.city \t\t--Cross DB Table\t\t\t\t\t\t\t\t\nLEFT JOIN LATERAL (\n    SELECT *\n    FROM spree_payments sp\n    LEFT JOIN spree_payment_methods spm ON spm.id = sp.payment_method_id\n    WHERE sp.order_id = a.id\n\t AND (\n\t\t (SELECT COUNT(*) FROM spree_payments WHERE order_id = a.id) <= 1 OR\n\t\tspm.type NOT IN ('Spree::Gateway::LoyaltyPoint', 'Spree::PaymentMethod::StoreCredit')\n\t )\n    ORDER BY sp.created_at DESC \n    LIMIT 1\n) sp_max ON true\nwhere a.state != 'cart'\norder by a.id;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Order DB"
+		},
+		"annotations": []
+	}
+}
