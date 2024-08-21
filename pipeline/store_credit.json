@@ -54,20 +54,6 @@
 								}
 							},
 							{
-								"sink": {
-									"name": "category_id",
-									"type": "Int32",
-									"physicalType": "integer"
-								}
-							},
-							{
-								"sink": {
-									"name": "type_id",
-									"type": "Int32",
-									"physicalType": "integer"
-								}
-							},
-							{
 								"source": {
 									"name": "created_by_id",
 									"type": "Int32",
@@ -197,13 +183,6 @@
 									"name": "deleted_at",
 									"type": "DateTime",
 									"physicalType": "timestamp without time zone"
-								}
-							},
-							{
-								"sink": {
-									"name": "meta",
-									"type": "String",
-									"physicalType": "json"
 								}
 							}
 						],
