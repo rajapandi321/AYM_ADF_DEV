@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "select \nsr.id,\nso.id as order_id,\ncase \nwhen sr.transaction_id is not null then sr.transaction_id \nelse sp.response_code \nend as transaction_id,\nsr.created_at,\nsr.updated_at,\nsr.amount,\ncoalesce(case \n\twhen sr.status='uncertain' then 'pending'\n\twhen sr.status='failed' then 'failed'\n\twhen sr.status='success' then 'approved'\nEnd,'') as status,\n'SAR' as currency,\n'' as type\nFrom spree_refunds sr\nleft join spree_payments sp on sp.id=sr.payment_id \nleft join spree_orders so on so.id = sp.order_id and so.state!='cart';"
+						"query": "select \nsr.id,\nsp.order_id,\ncase \nwhen sr.transaction_id is not null then sr.transaction_id \nelse sp.response_code \nend as transaction_id,\nsr.created_at,\nsr.updated_at,\nsr.amount,\ncase \n\twhen sr.status='uncertain' then 'pending'\n\twhen sr.status='failed' then 'failed'\n\twhen sr.status='success' then 'approved'\n\telse ''\nEnd as status,\n'SAR' as currency,\n'' as type\nFrom spree_refunds sr\ninner join spree_payments sp on sp.id=sr.payment_id \nwhere sr.payment_id is not null;"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
