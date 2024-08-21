@@ -1,0 +1,60 @@
+{
+	"name": "order_payment_refund",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "select \nsr.id,\nso.id as order_id,\ncase \nwhen sr.transaction_id is not null then sr.transaction_id \nelse sp.response_code \nend as transaction_id,\nsr.created_at,\nsr.updated_at,\nsr.amount,\ncase \n\twhen sr.status='uncertain' then 'pending'\n\twhen sr.status='failed' then 'failed'\n\twhen sr.status='success' then 'approved'\nEnd as status,\n'SAR' as currency,\n'' as type\nFrom spree_refunds sr\nleft join spree_payments sp on sp.id=sr.payment_id \nleft join spree_orders so on so.id = sp.order_id and so.state!='cart';"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order_payment_refund"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Order DB"
+		},
+		"annotations": []
+	}
+}
