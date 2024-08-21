@@ -26,6 +26,7 @@
 						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
+					"parallelCopies": 8,
 					"translator": {
 						"type": "TabularTranslator",
 						"typeConversion": true,
