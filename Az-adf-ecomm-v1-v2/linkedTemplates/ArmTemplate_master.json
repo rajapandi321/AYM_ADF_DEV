@@ -11,6 +11,11 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'LS_V1_PRODUCTION'"
 		},
+		"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_DEV_SERVER'",
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=user-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+		},
 		"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_PRODUCTION_SERVER'",
@@ -30,11 +35,6 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
-		},
-		"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_DEV_SERVER'",
-			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=user-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
 		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"type": "string",
@@ -82,6 +82,9 @@
 					"LS_V1_PRODUCTION_password": {
 						"value": "[parameters('LS_V1_PRODUCTION_password')]"
 					},
+					"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
+						"value": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]"
+					},
 					"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]"
 					},
@@ -93,9 +96,6 @@
 					},
 					"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_USER_DB_PRODUCTION_SERVER_connectionString')]"
-					},
-					"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
-						"value": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]"
 					},
 					"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 						"value": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
@@ -112,6 +112,26 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'Az-adf-ecomm-v1-v2_ArmTemplate_0')]"
+			]
 		}
 	]
 }
