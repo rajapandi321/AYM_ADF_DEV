@@ -1,0 +1,60 @@
+{
+	"name": "delivery_option",
+	"properties": {
+		"activities": [
+			{
+				"name": "delivery_option",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT ssm.id,\n       ssmt.name,\n       ssm.created_at,\n       ssm.updated_at,\n       ssm.deleted_at\nFROM   spree_shipping_methods ssm\nleft join spree_shipping_method_translations ssmt\non ssm.id = ssmt.spree_shipping_method_id\nand locale = 'en';"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "delivery_option"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "User DB"
+		},
+		"annotations": []
+	}
+}
