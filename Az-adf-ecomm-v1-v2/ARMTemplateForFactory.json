@@ -58,6 +58,286 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/address')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "address",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n    sua.id,\n    CASE\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\n        WHEN sa.address1 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ')\n        WHEN sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address2, ', ')\n        ELSE ''\n    END AS formatted_address,\n    COALESCE(sst_en.name, sst_ar.name) AS city,\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::INTEGER, NULL) AS postal_code,\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\n    sua.created_at,\n    sua.updated_at,\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\n    COALESCE(sa.latitude, 0) AS latitude,\n    COALESCE(sa.longitude, 0) AS longitude,\n    sua.default AS is_default,\n    sua.user_id AS user_id,\n    'other' AS type,\n\tcase when sa.driver_meta_data is not null then sa.driver_meta_data->>'verified' \n\telse 'false' END AS is_verified,\n    sa.driver_meta_data->>'notes' AS comments\nFROM\n    spree_user_addresses sua\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\nLEFT JOIN spree_state_translations sst_en  ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\nLEFT JOIN spree_state_translations sst_ar  ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\nwhere (sa.id is not null and city is not null)\nORDER BY sua.id DESC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "address"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cashback')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "cashback",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select * from spree_cashbacks;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "cashback"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/checkout_cards')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "checkout_cards",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n    a.id,\n    a.user_id,\n\tCOALESCE(a.name, '') AS name_on_card,\n    COALESCE(a.cc_type, '') AS scheme,\n    CASE \n        WHEN a.cc_type = 'MADA' THEN 'mada'\n        ELSE ''\n    END AS scheme_local,\n\tCOALESCE(a.gateway_payment_profile_id, '') AS instrument_id,\n\tCOALESCE(NULLIF(a.last_digits ~ E'^\\\\d+$', false)::integer, -1) AS last_digits,\n\tCOALESCE(NULLIF(a.month ~ E'^\\\\d+$', false)::integer, -1) AS expiry_month,\n\tCOALESCE(NULLIF(a.year ~ E'^\\\\d+$', false)::integer, -1) AS expiry_year,\n    a.updated_at,\n    a.created_at,\n\t'CREDIT' as card_type\nFROM   \n    spree_credit_cards a\nwhere user_id is not null\nORDER BY \n    id ASC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "checkout_cards"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/city')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "city",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select distinct lower(sst.name) as name,\n\t\t ss.country_id,\n\t\t ss.created_at,\n\t\tss.updated_at,\n    \ttrue AS is_visible\nfrom danube_supermarkets ds \njoin spree_states ss on ss.id = ds.state_id \njoin spree_state_translations sst on sst.spree_state_id = ss.id and sst.locale = 'en';"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "city"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/currency')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -111,6 +391,194 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"table_name": "currency"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_DEV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/delivery_option')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "delivery_option",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT ssm.id,\n       ssmt.name,\n       ssm.created_at,\n       ssm.updated_at,\n       ssm.deleted_at\nFROM   spree_shipping_methods ssm\nleft join spree_shipping_method_translations ssmt\non ssm.id = ssmt.spree_shipping_method_id\nand locale = 'en';"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "delivery_option"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/delivery_type')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "delivery_type",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "INSERT INTO PUBLIC.delivery_type\r\n            (id,\r\n             NAME,\r\n             created_at)\r\nVALUES      ( 1,\r\n              'Regular',\r\n              '2023-02-24 07:20:04.500904' ),\r\n            ( 2,\r\n              'Express',\r\n              '2023-02-24 07:20:04.500904' ); \r\nSELECT 'AYM' as AYMInsertActivity",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "delivery_type"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/language')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "language",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_DEV",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "language"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "language"
 								}
 							}
 						]
@@ -635,6 +1103,76 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/order_adjustment')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select sa.id,\n\tsa.order_id,\n    sa.created_at,\n    sa.updated_at,\n    sa.source_id,\n    sa.adjustable_id,\n    sa.adjustment_reason_id as adjustable_reason_id,\n    sa.amount,\n    sa.promotion_code_id,\n    sa.eligible,\n    sa.included,\n    sa.finalized,\n    sa.free_sample,\n    substring(sa.source_type,8) as source_type,\n    sa.label,\n    substring(sa.adjustable_type,8) as adjustable_type\nfrom spree_adjustments sa\nleft join spree_orders so on sa.order_id = so.id and so.state !='cart'"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "order_adjustment"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/order_cancellation_reason')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -873,7 +1411,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/product_price_versions')]",
+			"name": "[concat(parameters('factoryName'), '/order_payment_refund')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -893,7 +1431,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT ppv.id,\n       ppv.created_at,\n       ppv.item_id AS inventory_modifier_id,\n       ppv.whodunnit AS user_id,\n\t   pim.product_id,\n\t   pim.rule_supermarket_id as supermarket_id,\n       ppv.object_changes,\n       (ppv.object_changes->'action_price'->>0)::numeric AS action_price,\n       (ppv.object_changes->'action_price'->>1)::numeric AS updated_action_price,\n       (ppv.object_changes->'action_sale_price'->>0)::numeric AS sale_price,\n       (ppv.object_changes->'action_sale_price'->>1)::numeric AS updated_sale_price,\n       ppv.event\nFROM spree_product_price_versions ppv\nleft join spree_product_inventory_modifiers pim\non pim.id = ppv.item_id\norder by ppv.id;"
+								"query": "select \nsr.id,\nsp.order_id,\ncase \nwhen sr.transaction_id is not null then sr.transaction_id \nelse sp.response_code \nend as transaction_id,\nsr.created_at,\nsr.updated_at,\nsr.amount,\ncase \n\twhen sr.status='uncertain' then 'pending'\n\twhen sr.status='failed' then 'failed'\n\twhen sr.status='success' then 'approved'\n\telse ''\nEnd as status,\n'SAR' as currency,\n'' as type\nFrom spree_refunds sr\ninner join spree_payments sp on sp.id=sr.payment_id \nwhere sr.payment_id is not null;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -920,13 +1458,10 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": {
-										"value": "product_price_versions",
-										"type": "Expression"
-									}
+									"table_name": "order_payment_refund"
 								}
 							}
 						]
@@ -936,474 +1471,13 @@
 					"elapsedTimeMetric": {}
 				},
 				"folder": {
-					"name": "Product DB"
+					"name": "Order DB"
 				},
 				"annotations": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_PRODUCT_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V1_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V1_PRODUCTION",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "PostgreSqlV2Table",
-				"schema": [],
-				"typeProperties": {}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V1_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_AUTH_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_ORDER_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [
-					{
-						"name": "id",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "order_id",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "address_id",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "is_bill_address",
-						"type": "boolean",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "city",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "country",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "district",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "type",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "formatted_address",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "latitude",
-						"type": "double precision",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "longitude",
-						"type": "double precision",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "is_default",
-						"type": "boolean",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "street_no",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "area",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "postal_code",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "delivery_instruction",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "created_at",
-						"type": "timestamp without time zone",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "updated_at",
-						"type": "timestamp without time zone",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "deleted_at",
-						"type": "timestamp without time zone",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "is_verified",
-						"type": "boolean",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "image",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "comments",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					}
-				],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_PRODUCT_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCT_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_DEV')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_AUTH_DB_DEV_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets DEV"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_DEV_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_Danube_Key_Vault')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzureKeyVault",
-				"typeProperties": {
-					"baseUrl": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V1_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "PostgreSqlV2",
-				"typeProperties": {
-					"server": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_server')]",
-					"port": 5432,
-					"database": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_database')]",
-					"username": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_username')]",
-					"password": {
-						"type": "SecureString",
-						"value": "[parameters('LS_V1_PRODUCTION_password')]"
-					},
-					"sslMode": 1,
-					"authenticationType": "Basic"
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_DEV_SERVER')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzurePostgreSql",
-				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_Danube_Key_Vault",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "db-password-dev"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_PRODUCTION_SERVER')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzurePostgreSql",
-				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_Danube_Key_Vault",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCTION_SERVER')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzurePostgreSql",
-				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_PRODUCTION_SERVER_connectionString')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_Danube_Key_Vault",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCT_DB_PRODUCTION_SERVER')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzurePostgreSql",
-				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_Danube_Key_Vault",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_USER_DB_PRODUCTION_SERVER')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzurePostgreSql",
-				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_USER_DB_PRODUCTION_SERVER_connectionString')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_Danube_Key_Vault",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
 			]
 		},
 		{
@@ -1478,13 +1552,13 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/order_payment_refund')]",
+			"name": "[concat(parameters('factoryName'), '/payment_option')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "Copy data1",
+						"name": "payment_option",
 						"type": "Copy",
 						"dependsOn": [],
 						"policy": {
@@ -1498,7 +1572,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select \nsr.id,\nsp.order_id,\ncase \nwhen sr.transaction_id is not null then sr.transaction_id \nelse sp.response_code \nend as transaction_id,\nsr.created_at,\nsr.updated_at,\nsr.amount,\ncase \n\twhen sr.status='uncertain' then 'pending'\n\twhen sr.status='failed' then 'failed'\n\twhen sr.status='success' then 'approved'\n\telse ''\nEnd as status,\n'SAR' as currency,\n'' as type\nFrom spree_refunds sr\ninner join spree_payments sp on sp.id=sr.payment_id \nwhere sr.payment_id is not null;"
+								"query": "SELECT id,\n       name,\n       created_at,\n       updated_at,\n       deleted_at,\n       CASE\n            WHEN type = 'Spree::PaymentMethod::StoreCredit' THEN 'e-wlt'\n            WHEN type = 'Spree::Gateway::PayFort' THEN 'credit'\n            WHEN type = 'Spree::Gateway::CheckoutCom' THEN 'credit'\n            WHEN type = 'Spree::Gateway::Tamara' THEN 'tamara'\n            WHEN type = 'Spree::Gateway::BogusSimple' THEN 'bogus-simple'\n            WHEN type = 'Spree::PaymentMethod::Check' THEN 'cod'\n            WHEN type = 'Spree::Gateway::CheckoutCom::ApplePay' THEN 'a-pay'\n            WHEN type = 'Spree::Gateway::LoyaltyPoint' THEN 'loy-pts'\n            WHEN type = 'Spree::Gateway::PayFort::ApplePay' THEN 'a-pay'\n        Else '' \n\t\tEnd as code\nFROM   spree_payment_methods\nwhere name is not null\nORDER  BY id ASC;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -1525,10 +1599,10 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": "order_payment_refund"
+									"table_name": "payment_option"
 								}
 							}
 						]
@@ -1538,17 +1612,17 @@
 					"elapsedTimeMetric": {}
 				},
 				"folder": {
-					"name": "Order DB"
+					"name": "User DB"
 				},
 				"annotations": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/order_adjustment')]",
+			"name": "[concat(parameters('factoryName'), '/product_price_versions')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -1568,7 +1642,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select sa.id,\n\tsa.order_id,\n    sa.created_at,\n    sa.updated_at,\n    sa.source_id,\n    sa.adjustable_id,\n    sa.adjustment_reason_id as adjustable_reason_id,\n    sa.amount,\n    sa.promotion_code_id,\n    sa.eligible,\n    sa.included,\n    sa.finalized,\n    sa.free_sample,\n    substring(sa.source_type,8) as source_type,\n    sa.label,\n    substring(sa.adjustable_type,8) as adjustable_type\nfrom spree_adjustments sa\nleft join spree_orders so on sa.order_id = so.id and so.state !='cart'"
+								"query": "SELECT ppv.id,\n       ppv.created_at,\n       ppv.item_id AS inventory_modifier_id,\n       ppv.whodunnit AS user_id,\n\t   pim.product_id,\n\t   pim.rule_supermarket_id as supermarket_id,\n       ppv.object_changes,\n       (ppv.object_changes->'action_price'->>0)::numeric AS action_price,\n       (ppv.object_changes->'action_price'->>1)::numeric AS updated_action_price,\n       (ppv.object_changes->'action_sale_price'->>0)::numeric AS sale_price,\n       (ppv.object_changes->'action_sale_price'->>1)::numeric AS updated_sale_price,\n       ppv.event\nFROM spree_product_price_versions ppv\nleft join spree_product_inventory_modifiers pim\non pim.id = ppv.item_id\norder by ppv.id;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -1595,10 +1669,13 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": "order_adjustment"
+									"table_name": {
+										"value": "product_price_versions",
+										"type": "Expression"
+									}
 								}
 							}
 						]
@@ -1608,13 +1685,13 @@
 					"elapsedTimeMetric": {}
 				},
 				"folder": {
-					"name": "Order DB"
+					"name": "Product DB"
 				},
 				"annotations": []
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+				"[concat(variables('factoryId'), '/datasets/DS_V2_PRODUCT_DB_PRODUCTION')]"
 			]
 		},
 		{
@@ -2126,334 +2203,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/cashback')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "cashback",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select * from spree_cashbacks;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "cashback"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Order DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/delivery_type')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "delivery_type",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "INSERT INTO PUBLIC.delivery_type\r\n            (id,\r\n             NAME,\r\n             created_at)\r\nVALUES      ( 1,\r\n              'Regular',\r\n              '2023-02-24 07:20:04.500904' ),\r\n            ( 2,\r\n              'Express',\r\n              '2023-02-24 07:20:04.500904' ); \r\nSELECT 'AYM' as AYMInsertActivity",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "delivery_type"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/language')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "language",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_DEV",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "language"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "language"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_DEV')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/city')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "city",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select distinct lower(sst.name) as name,\n\t\t ss.country_id,\n\t\t ss.created_at,\n\t\tss.updated_at,\n    \ttrue AS is_visible\nfrom danube_supermarkets ds \njoin spree_states ss on ss.id = ds.state_id \njoin spree_state_translations sst on sst.spree_state_id = ss.id and sst.locale = 'en';"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "city"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/payment_option')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "payment_option",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT id,\n       name,\n       created_at,\n       updated_at,\n       deleted_at,\n       CASE\n            WHEN type = 'Spree::PaymentMethod::StoreCredit' THEN 'e-wlt'\n            WHEN type = 'Spree::Gateway::PayFort' THEN 'credit'\n            WHEN type = 'Spree::Gateway::CheckoutCom' THEN 'credit'\n            WHEN type = 'Spree::Gateway::Tamara' THEN 'tamara'\n            WHEN type = 'Spree::Gateway::BogusSimple' THEN 'bogus-simple'\n            WHEN type = 'Spree::PaymentMethod::Check' THEN 'cod'\n            WHEN type = 'Spree::Gateway::CheckoutCom::ApplePay' THEN 'a-pay'\n            WHEN type = 'Spree::Gateway::LoyaltyPoint' THEN 'loy-pts'\n            WHEN type = 'Spree::Gateway::PayFort::ApplePay' THEN 'a-pay'\n        Else '' \n\t\tEnd as code\nFROM   spree_payment_methods\nwhere name is not null\nORDER  BY id ASC;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "payment_option"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/time_slot')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2524,89 +2273,465 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/delivery_option')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
+			"name": "[concat(parameters('factoryName'), '/DS_V1_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"activities": [
-					{
-						"name": "delivery_option",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT ssm.id,\n       ssmt.name,\n       ssm.created_at,\n       ssm.updated_at,\n       ssm.deleted_at\nFROM   spree_shipping_methods ssm\nleft join spree_shipping_method_translations ssmt\non ssm.id = ssmt.spree_shipping_method_id\nand locale = 'en';"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "delivery_option"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
+				"linkedServiceName": {
+					"referenceName": "LS_V1_PRODUCTION",
+					"type": "LinkedServiceReference"
 				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
+				"annotations": [],
+				"type": "PostgreSqlV2Table",
+				"schema": [],
+				"typeProperties": {}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+				"[concat(variables('factoryId'), '/linkedServices/LS_V1_PRODUCTION')]"
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
+			"name": "[concat(parameters('factoryName'), '/DS_V2_AUTH_DB_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"policy": {
-					"elapsedTimeMetric": {}
+				"linkedServiceName": {
+					"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
 				},
 				"folder": {
-					"name": "User DB"
+					"name": "V2 Datasets Production"
 				},
-				"annotations": []
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_V2_ORDER_DB_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_V2_PRODUCTION_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "V2 Datasets Production"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [
+					{
+						"name": "id",
+						"type": "integer",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "order_id",
+						"type": "integer",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "address_id",
+						"type": "integer",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "is_bill_address",
+						"type": "boolean",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "city",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "country",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "district",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "type",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "formatted_address",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "latitude",
+						"type": "double precision",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "longitude",
+						"type": "double precision",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "is_default",
+						"type": "boolean",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "street_no",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "area",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "postal_code",
+						"type": "integer",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "delivery_instruction",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "created_at",
+						"type": "timestamp without time zone",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "updated_at",
+						"type": "timestamp without time zone",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "deleted_at",
+						"type": "timestamp without time zone",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "is_verified",
+						"type": "boolean",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "image",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					},
+					{
+						"name": "comments",
+						"type": "character varying",
+						"precision": 0,
+						"scale": 0
+					}
+				],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_V2_PRODUCT_DB_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "V2 Datasets Production"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCT_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_DEV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_V2_AUTH_DB_DEV_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "V2 Datasets DEV"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_DEV_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "V2 Datasets Production"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_Danube_Key_Vault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
+				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V1_PRODUCTION')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "PostgreSqlV2",
+				"typeProperties": {
+					"server": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_database')]",
+					"username": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_username')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('LS_V1_PRODUCTION_password')]"
+					},
+					"sslMode": 1,
+					"authenticationType": "Basic"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_DEV_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "db-password-dev"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_PRODUCTION_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCTION_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_PRODUCTION_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCT_DB_PRODUCTION_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_USER_DB_PRODUCTION_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_USER_DB_PRODUCTION_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
 		}
 	]
 }
