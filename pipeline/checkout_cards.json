@@ -44,10 +44,7 @@
 				"outputs": [
 					{
 						"referenceName": "DS_V2_USER_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "checkout_cards"
-						}
+						"type": "DatasetReference"
 					}
 				]
 			}
