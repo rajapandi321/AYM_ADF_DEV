@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT \n    a.id,\n    a.user_id,\n\tCOALESCE(a.name, '') AS name_on_card,\n    COALESCE(a.cc_type, '') AS scheme,\n    CASE \n        WHEN a.cc_type = 'MADA' THEN 'mada'\n    END AS schema_local,\n\tCOALESCE(a.gateway_payment_profile_id, '') AS instrument_id,\n\tCOALESCE(NULLIF(a.last_digits ~ E'^\\\\d+$', false)::integer, -1) AS last_digits,\n\tCOALESCE(NULLIF(a.month ~ E'^\\\\d+$', false)::integer, -1) AS expiry_month,\n\tCOALESCE(NULLIF(a.year ~ E'^\\\\d+$', false)::integer, -1) AS expiry_year,\n    a.updated_at,\n    a.created_at,\n\t'CREDIT' as card_type\nFROM   \n    spree_credit_cards a\nwhere user_id is not null\nORDER BY \n    id ASC;"
+						"query": "SELECT \n    a.id,\n    a.user_id,\n\tCOALESCE(a.name, '') AS name_on_card,\n    COALESCE(a.cc_type, '') AS scheme,\n    CASE \n        WHEN a.cc_type = 'MADA' THEN 'mada'\n    END AS scheme_local,\n\tCOALESCE(a.gateway_payment_profile_id, '') AS instrument_id,\n\tCOALESCE(NULLIF(a.last_digits ~ E'^\\\\d+$', false)::integer, -1) AS last_digits,\n\tCOALESCE(NULLIF(a.month ~ E'^\\\\d+$', false)::integer, -1) AS expiry_month,\n\tCOALESCE(NULLIF(a.year ~ E'^\\\\d+$', false)::integer, -1) AS expiry_year,\n    a.updated_at,\n    a.created_at,\n\t'CREDIT' as card_type\nFROM   \n    spree_credit_cards a\nwhere user_id is not null\nORDER BY \n    id ASC;"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
@@ -44,7 +44,10 @@
 				"outputs": [
 					{
 						"referenceName": "DS_V2_USER_DB_PRODUCTION",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "checkout_cards"
+						}
 					}
 				]
 			}
