@@ -1,0 +1,60 @@
+{
+	"name": "payment_option",
+	"properties": {
+		"activities": [
+			{
+				"name": "payment_option",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT id,\n       name,\n       created_at,\n       updated_at,\n       deleted_at,\n       CASE\n            WHEN type = 'Spree::PaymentMethod::StoreCredit' THEN 'e-wlt'\n            WHEN type = 'Spree::Gateway::PayFort' THEN 'credit'\n            WHEN type = 'Spree::Gateway::CheckoutCom' THEN 'credit'\n            WHEN type = 'Spree::Gateway::Tamara' THEN 'tamara'\n            WHEN type = 'Spree::Gateway::BogusSimple' THEN 'bogus-simple'\n            WHEN type = 'Spree::PaymentMethod::Check' THEN 'cod'\n            WHEN type = 'Spree::Gateway::CheckoutCom::ApplePay' THEN 'a-pay'\n            WHEN type = 'Spree::Gateway::LoyaltyPoint' THEN 'loy-pts'\n            WHEN type = 'Spree::Gateway::PayFort::ApplePay' THEN 'a-pay'\n        Else '' \n\t\tEnd as code\nFROM   spree_payment_methods\nwhere name is not null\nORDER  BY id ASC;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "payment_option"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "User DB"
+		},
+		"annotations": []
+	}
+}
