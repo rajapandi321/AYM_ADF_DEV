@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "-- currency table resides in the V2 database and requires a cross-database connection\nSELECT a.id,\n       a.iso3                   AS iso_country_code,\n       a.name,\n       a.updated_at,\n       a.created_at,\n       ua.id AS currency_id,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a \nleft join currency ua on ua.name=a.currency"
+						"query": "SELECT a.id,\n       a.iso3                   AS iso_country_code,\n       a.name,\n       a.updated_at,\n       a.created_at,\n       ua.id AS currency_id,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a \nleft join currency ua on ua.name=a.currency"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
