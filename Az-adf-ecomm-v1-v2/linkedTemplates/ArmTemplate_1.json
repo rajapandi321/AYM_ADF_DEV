@@ -13,6 +13,74 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/order_product')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT\n    a.id, \n    a.variant_id AS product_variant_id,\n    COALESCE(SUM(siu.quantity_count), 0) AS quantity,\n    a.price,\n    a.created_at,\n    a.updated_at,\n    CASE \n        WHEN a.on_sale = false THEN a.price\n        ELSE '0.0'\n    END AS action_price,\n    CASE \n        WHEN a.on_sale = true THEN a.price\n        ELSE '0'\n    END AS sale_price,\n    b.product_id,\n    CASE\n      WHEN d.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n      WHEN d.replace_product::varchar = 'false' THEN 'cancel'\n      ELSE NULL\n    END AS replacement_pref,\n    COALESCE(SUM(e.quantity), 0) AS picked_quantity,\n    0 AS picker_id,\n    COALESCE(c.shipment_id, 0) AS order_shipment_id,\n    1 AS category_id, -- default value = 1 (grocery id from category table)\n    '' AS status\nFROM spree_line_items a \nLEFT JOIN spree_variants b ON b.id = a.variant_id\nLEFT JOIN (\n    SELECT DISTINCT ON (line_item_id) * \n    FROM spree_inventory_units\n) c ON c.line_item_id = a.id\nLEFT JOIN (\n    SELECT \n        line_item_id, \n        state, \n        COUNT(id) AS quantity_count\n    FROM spree_inventory_units \n    GROUP BY line_item_id, state\n) siu ON siu.line_item_id = a.id AND siu.state != 'canceled'\nLEFT JOIN spree_orders d ON d.id = c.order_id\nLEFT JOIN spree_picked_items e ON e.pickable_id = a.id\nGROUP BY\n    a.id, \n    a.variant_id,\n    a.price,\n    a.created_at,\n    a.updated_at,\n    a.on_sale,\n    b.product_id,\n    d.replace_product,\n    COALESCE(c.shipment_id, 0)\nORDER BY a.id;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"parallelCopies": 8,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "order_product"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/order_payment_refund')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -701,6 +769,50 @@
 				},
 				"folder": {
 					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/delivery_type')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "delivery_type",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "INSERT INTO PUBLIC.delivery_type\r\n            (id,\r\n             NAME,\r\n             created_at)\r\nVALUES      ( 1,\r\n              'Regular',\r\n              '2023-02-24 07:20:04.500904' ),\r\n            ( 2,\r\n              'Express',\r\n              '2023-02-24 07:20:04.500904' ); \r\nSELECT 'AYM' as AYMInsertActivity",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "delivery_type"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
 				},
 				"annotations": []
 			},
