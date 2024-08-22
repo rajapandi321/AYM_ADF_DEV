@@ -1,0 +1,60 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "delivery_type",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "INSERT INTO PUBLIC.delivery_type\n            (id,\n             NAME,\n             created_at)\nVALUES      ( 1,\n              'Regular',\n              '2023-02-24 07:20:04.500904' ),\n            ( 2,\n              'Express',\n              '2023-02-24 07:20:04.500904' ); "
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "delivery_type"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "User DB"
+		},
+		"annotations": []
+	}
+}
