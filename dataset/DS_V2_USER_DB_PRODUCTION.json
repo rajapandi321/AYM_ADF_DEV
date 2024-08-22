@@ -18,10 +18,7 @@
 		"schema": [],
 		"typeProperties": {
 			"schema": "public",
-			"table": {
-				"value": "@dataset().table_name",
-				"type": "Expression"
-			}
+			"table": "checkout_cards"
 		}
 	}
 }
