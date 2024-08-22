@@ -4,7 +4,7 @@
 		"activities": [
 			{
 				"name": "delivery_type",
-				"type": "Copy",
+				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -16,40 +16,18 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "PostgreSqlV2Source",
-						"query": "INSERT INTO PUBLIC.delivery_type\n            (id,\n             NAME,\n             created_at)\nVALUES      ( 1,\n              'Regular',\n              '2023-02-24 07:20:04.500904' ),\n            ( 2,\n              'Express',\n              '2023-02-24 07:20:04.500904' ); "
+						"type": "AzurePostgreSqlSource",
+						"query": "INSERT INTO PUBLIC.delivery_type\r\n            (id,\r\n             NAME,\r\n             created_at)\r\nVALUES      ( 1,\r\n              'Regular',\r\n              '2023-02-24 07:20:04.500904' ),\r\n            ( 2,\r\n              'Express',\r\n              '2023-02-24 07:20:04.500904' ); \r\nSELECT 'AYM' as AYMInsertActivity",
+						"partitionOption": "None"
 					},
-					"sink": {
-						"type": "AzurePostgreSQLSink",
-						"writeBatchSize": 1000000,
-						"writeBatchTimeout": "00:30:00",
-						"writeMethod": "CopyCommand"
-					},
-					"enableStaging": false,
-					"translator": {
-						"type": "TabularTranslator",
-						"typeConversion": true,
-						"typeConversionSettings": {
-							"allowDataTruncation": true,
-							"treatBooleanAsNumber": false
-						}
-					}
-				},
-				"inputs": [
-					{
-						"referenceName": "DS_V1_PRODUCTION",
-						"type": "DatasetReference"
-					}
-				],
-				"outputs": [
-					{
+					"dataset": {
 						"referenceName": "DS_V2_USER_DB_PRODUCTION",
 						"type": "DatasetReference",
 						"parameters": {
 							"table_name": "delivery_type"
 						}
 					}
-				]
+				}
 			}
 		],
 		"folder": {
