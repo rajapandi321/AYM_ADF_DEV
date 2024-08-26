@@ -26,10 +26,23 @@
 			"transformations": [
 				{
 					"name": "join1"
+				},
+				{
+					"name": "select1"
 				}
 			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          id as integer,",
+				"          iso_country_code as string,",
+				"          name as string,",
+				"          currency as string,",
+				"          updated_at as timestamp,",
+				"          created_at as timestamp,",
+				"          default_super_market_id as integer,",
+				"          currency_precision as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> source1",
@@ -47,11 +60,23 @@
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> currency",
-				"source1, currency join(source1@name == currency@name,",
+				"source1, currency join(currency == currency@name,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1"
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          id = source1@id,",
+				"          iso_country_code,",
+				"          name = source1@name,",
+				"          updated_at = source1@updated_at,",
+				"          created_at = source1@created_at,",
+				"          default_super_market_id,",
+				"          currency_precision,",
+				"          currency_id = currency@id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1"
 			]
 		}
 	}
