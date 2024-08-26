@@ -188,6 +188,94 @@
 						}
 					}
 				]
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": {
+							"value": "UPDATE delivery_capacity dc\nSET time_slot_id = ts.id\nFROM time_slot ts\nWHERE dc.start_time = ts.start_time\n  AND dc.end_time = ts.end_time\n  AND dc.day_of_week = ts.day_of_week\n  AND dc.delivery_option_id = ts.delivery_option_id;\nSELECT 'Time Slots are Updated' as Time_Slot_status",
+							"type": "Expression"
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "delivery_capacity"
+						}
+					}
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 11
+				}
+			},
+			{
+				"name": "Lookup2",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Wait1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "alter table delivery_capacity drop column start_time;\r\nalter table delivery_capacity drop column end_time;\r\nalter table delivery_capacity drop column delivery_option_id;\r\nalter table delivery_capacity drop column day_of_week;\r\nALTER TABLE delivery_capacity ALTER COLUMN time_slot_id SET NOT NULL;\r\nSELECT 'Dropped Additional Columns' as Columns;\r\n",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "delivery_capacity"
+						}
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
 		"folder": {
