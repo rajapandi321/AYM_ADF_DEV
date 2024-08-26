@@ -5,6 +5,9 @@
 		"factoryName": {
 			"value": "Az-adf-ecomm-v1-v2"
 		},
+		"LS_CrossDB_Connection_Storage_connectionString": {
+			"value": ""
+		},
 		"LS_V1_PRODUCTION_password": {
 			"value": ""
 		},

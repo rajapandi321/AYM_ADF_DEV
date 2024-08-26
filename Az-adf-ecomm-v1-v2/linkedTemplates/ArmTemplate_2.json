@@ -1,0 +1,83 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "Az-adf-ecomm-v1-v2"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/time_slot')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "time_slot table",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n    ROW_NUMBER() OVER (ORDER BY dtss.time_slot_id) AS id, \n    dtss.spree_shipping_method_id AS delivery_option_id, \n    CASE \n        WHEN dtss.day_of_week = 0 THEN 'sunday' \n        WHEN dtss.day_of_week = 1 THEN 'monday' \n        WHEN dtss.day_of_week = 2 THEN 'tuesday' \n        WHEN dtss.day_of_week = 3 THEN 'wednesday' \n        WHEN dtss.day_of_week = 4 THEN 'thursday' \n        WHEN dtss.day_of_week = 5 THEN 'friday' \n        WHEN dtss.day_of_week = 6 THEN 'saturday' \n        ELSE '' \n    END AS day_of_week, \n    CAST(dts.start_time AS TEXT) AS start_time, \n    CAST(dts.end_time AS TEXT) AS end_time, \n    dts.enabled AS is_enabled, \n    1 AS country_id \nFROM \n    danube_time_slots_schedules dtss \nLEFT JOIN \n    danube_time_slots dts ON dtss.time_slot_id = dts.id \nGROUP BY \n    dtss.time_slot_id, \n    dtss.spree_shipping_method_id, \n    dtss.day_of_week, \n    dts.start_time, \n    dts.end_time, \n    dts.enabled;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "time_slot"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		}
+	]
+}
