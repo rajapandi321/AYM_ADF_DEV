@@ -10,6 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
+				"fileName": "*.parquet",
 				"container": "production-migration"
 			},
 			"compressionCodec": "snappy"
