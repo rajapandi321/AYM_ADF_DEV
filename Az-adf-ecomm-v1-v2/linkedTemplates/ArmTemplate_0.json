@@ -700,6 +700,180 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/employee')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "employee"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "city"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "window1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "filteringcolumns"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          role_id as integer,",
+						"          email as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          is_deleted as boolean,",
+						"          first_name as string,",
+						"          last_name as string,",
+						"          mobile_number as string,",
+						"          dob as timestamp,",
+						"          country_code as string,",
+						"          country_id as integer,",
+						"          gender as string,",
+						"          user_type as string,",
+						"          availability as string,",
+						"          role_name as string,",
+						"          active as boolean,",
+						"          status as boolean,",
+						"          city as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> employee",
+						"source(output(",
+						"          id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          name as string,",
+						"          country_id as integer,",
+						"          abbreviation as string,",
+						"          city_image_url as string,",
+						"          is_visible as boolean,",
+						"          deleted_at as timestamp,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          translation_id as string,",
+						"          state_id as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'city',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
+						"employee, city join(lower(city) == name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 select(mapColumn(",
+						"          id = employee@id,",
+						"          role_id,",
+						"          email,",
+						"          created_at = employee@created_at,",
+						"          updated_at = employee@updated_at,",
+						"          is_deleted,",
+						"          first_name,",
+						"          last_name,",
+						"          mobile_number,",
+						"          dob,",
+						"          country_code,",
+						"          country_id = employee@country_id,",
+						"          gender,",
+						"          user_type,",
+						"          availability,",
+						"          active,",
+						"          status,",
+						"          city_id = city@id,",
+						"          role_name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 window(over(id),",
+						"     asc(role_name, false),",
+						"     final_column = rowNumber()==1) ~> window1",
+						"filteringcolumns select(mapColumn(",
+						"          id,",
+						"          role_id,",
+						"          email,",
+						"          created_at,",
+						"          updated_at,",
+						"          is_deleted,",
+						"          first_name,",
+						"          last_name,",
+						"          mobile_number,",
+						"          dob,",
+						"          country_code,",
+						"          country_id,",
+						"          gender,",
+						"          user_type,",
+						"          availability,",
+						"          active,",
+						"          status,",
+						"          city_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"window1 filter(equals(final_column,true())) ~> filteringcolumns",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'employee',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/address')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -891,76 +1065,6 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"table_name": "checkout_cards"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/city')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "city",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select distinct lower(sst.name) as name,\n\t\t ss.country_id,\n\t\t ss.created_at,\n\t\tss.updated_at,\n    \ttrue AS is_visible,\n    \tds.state_id\nfrom danube_supermarkets ds \njoin spree_states ss on ss.id = ds.state_id \njoin spree_state_translations sst on sst.spree_state_id = ss.id and sst.locale = 'en';"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "city"
 								}
 							}
 						]
