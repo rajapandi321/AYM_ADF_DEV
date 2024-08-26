@@ -12,16 +12,95 @@
 						"referenceName": "DS_Intermiadate_Result",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "supermarket"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "city"
 				}
 			],
 			"sinks": [],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				}
+			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          address as string,",
+				"          mobile_number as string,",
+				"          country_id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          is_visible as boolean,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          time_slots_lead_time as integer,",
+				"          express_delivery_fee as decimal(38,18),",
+				"          call_mask as boolean,",
+				"          minimum_total_amount_for_free_delivery as decimal(38,18),",
+				"          description as string,",
+				"          state_id as integer,",
+				"          city as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet') ~> source1"
+				"     format: 'parquet') ~> supermarket",
+				"source(output(",
+				"          id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          name as string,",
+				"          country_id as integer,",
+				"          abbreviation as string,",
+				"          city_image_url as string,",
+				"          is_visible as boolean,",
+				"          deleted_at as timestamp,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          translation_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'query',",
+				"     query: 'select * from city',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
+				"supermarket, city join(city == city@name,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          id = supermarket@id,",
+				"          name = supermarket@name,",
+				"          address,",
+				"          mobile_number,",
+				"          country_id = supermarket@country_id,",
+				"          created_at = supermarket@created_at,",
+				"          updated_at = supermarket@updated_at,",
+				"          is_visible = supermarket@is_visible,",
+				"          latitude = supermarket@latitude,",
+				"          longitude = supermarket@longitude,",
+				"          time_slots_lead_time,",
+				"          express_delivery_fee,",
+				"          call_mask,",
+				"          minimum_total_amount_for_free_delivery,",
+				"          description,",
+				"          city_id = city@id,",
+				"          translation_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1"
 			]
 		}
 	}
