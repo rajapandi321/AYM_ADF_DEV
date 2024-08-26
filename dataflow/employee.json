@@ -13,6 +13,9 @@
 						"type": "DatasetReference"
 					},
 					"name": "source1"
+				},
+				{
+					"name": "source2"
 				}
 			],
 			"sinks": [],
@@ -21,7 +24,10 @@
 				"source(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet') ~> source1"
+				"     format: 'parquet',",
+				"     wildcardPaths:['*.parquet']) ~> source1",
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false) ~> source2"
 			]
 		}
 	}
