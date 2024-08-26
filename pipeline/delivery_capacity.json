@@ -1,0 +1,63 @@
+{
+	"name": "delivery_capacity",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"preCopyScript": {
+							"value": "alter table delivery_capacity add column start_time varchar(100);\nalter table delivery_capacity add column end_time varchar(100);\nalter table delivery_capacity add column delivery_option_id int;\nalter table delivery_capacity add column day_of_week varchar(100);",
+							"type": "Expression"
+						},
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "delivery_capacity"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "User DB"
+		},
+		"annotations": []
+	}
+}
