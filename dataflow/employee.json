@@ -12,24 +12,53 @@
 						"referenceName": "DS_Intermiadate_Result",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "employee"
 				},
 				{
 					"linkedService": {
 						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 						"type": "LinkedServiceReference"
 					},
-					"name": "source2"
+					"name": "city"
 				}
 			],
 			"sinks": [],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "filter1"
+				}
+			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          id as integer,",
+				"          role_id as integer,",
+				"          email as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          is_deleted as boolean,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          mobile_number as string,",
+				"          dob as timestamp,",
+				"          country_code as string,",
+				"          country_id as integer,",
+				"          gender as string,",
+				"          user_type as string,",
+				"          availability as string,",
+				"          active as boolean,",
+				"          status as boolean,",
+				"          city as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet',",
-				"     wildcardPaths:['*.parquet']) ~> source1",
+				"     format: 'parquet') ~> employee",
 				"source(output(",
 				"          id as integer,",
 				"          created_at as timestamp,",
@@ -51,7 +80,35 @@
 				"     tableName: 'city',",
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
-				"     isolationLevel: 'READ_UNCOMMITTED') ~> source2"
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
+				"employee, city join(lower(city) == name,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          id = employee@id,",
+				"          role_id,",
+				"          email,",
+				"          created_at = employee@created_at,",
+				"          updated_at = employee@updated_at,",
+				"          is_deleted,",
+				"          first_name,",
+				"          last_name,",
+				"          mobile_number,",
+				"          dob,",
+				"          country_code,",
+				"          country_id = employee@country_id,",
+				"          gender,",
+				"          user_type,",
+				"          availability,",
+				"          active,",
+				"          status,",
+				"          city_id = city@id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 filter(not(isNull(city_id))) ~> filter1"
 			]
 		}
 	}
