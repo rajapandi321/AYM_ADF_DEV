@@ -1,0 +1,60 @@
+{
+	"name": "feedback",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "select \nsfdrw.id,\nsur.first_name,\nsur.last_name,\nsur.email,\nsur.mobile_number_country_code as country_code,\nsur.mobile_phone_number as mobile_number,\nsfdrw.comment as message,\nsfdrw.created_at,\nsfdrw.updated_at,\nsfdrw.user_id\nfrom spree_feedback_reviews sfdrw\nLeft join spree_users sur on sur.id = sfdrw.user_id;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "feedback"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "User DB"
+		},
+		"annotations": []
+	}
+}
