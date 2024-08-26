@@ -71,6 +71,18 @@
 							},
 							{
 								"source": {
+									"name": "currency",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "currency",
+									"type": "String",
+									"physicalType": "UTF8"
+								}
+							},
+							{
+								"source": {
 									"name": "updated_at",
 									"type": "DateTime",
 									"physicalType": "timestamp without time zone"
