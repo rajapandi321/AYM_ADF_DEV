@@ -82,7 +82,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    sua.id,\n    CASE\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\n        WHEN sa.address1 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ')\n        WHEN sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address2, ', ')\n        ELSE ''\n    END AS formatted_address,\n    COALESCE(sst_en.name, sst_ar.name) AS city,\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::INTEGER, NULL) AS postal_code,\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\n    sua.created_at,\n    sua.updated_at,\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\n    COALESCE(sa.latitude, 0) AS latitude,\n    COALESCE(sa.longitude, 0) AS longitude,\n    sua.default AS is_default,\n    sua.user_id AS user_id,\n    'other' AS type,\n\tcase when sa.driver_meta_data is not null then sa.driver_meta_data->>'verified' \n\telse 'false' END AS is_verified,\n    sa.driver_meta_data->>'notes' AS comments\nFROM\n    spree_user_addresses sua\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\nLEFT JOIN spree_state_translations sst_en  ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\nLEFT JOIN spree_state_translations sst_ar  ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\nwhere (sa.id is not null and city is not null)\nORDER BY sua.id DESC;"
+								"query": "SELECT DISTINCT\n    sua.id,\n    CASE\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\n        WHEN sa.address1 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ')\n        WHEN sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address2, ', ')\n        ELSE ''\n    END AS formatted_address,\n    COALESCE(COALESCE(sst_en.name, sst_ar.name),'') AS city,\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::BIGINT, NULL) AS postal_code,\n    sua.created_at,\n    sua.updated_at,\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\n    COALESCE(sa.latitude, 0) AS latitude,\n    COALESCE(sa.longitude, 0) AS longitude,\n    COALESCE(sua.default, 'false') AS is_default,\n    sua.user_id AS user_id,\n    'other' AS type,\n    COALESCE(\n        CASE \n            WHEN sa.driver_meta_data IS NOT NULL THEN sa.driver_meta_data->>'verified'\n            ELSE 'false'\n        END, 'false') AS is_verified,  -- Ensure non-null value here\n    '' AS title,\n    sa.driver_meta_data->>'notes' AS comments\nFROM\n    spree_user_addresses sua\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\nLEFT JOIN spree_state_translations sst_en ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\nLEFT JOIN spree_state_translations sst_ar ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\nWHERE (sa.id IS NOT NULL AND city IS NOT NULL)\nORDER BY sua.id DESC;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -93,6 +93,200 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "is_default",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_default",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "user_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "user_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "type",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "type",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "formatted_address",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "formatted_address",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "postal_code",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "postal_code",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "district",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "district",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "is_verified",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "is_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "comments",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "comments",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "title",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "title",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -342,6 +536,248 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/country')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT a.id,\n       a.iso3 AS iso_country_code,\n       a.name,\n       a.currency,\n       a.updated_at,\n       a.created_at,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a ;"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "FlattenHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "iso_country_code",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "iso_country_code",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "currency",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "currency",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "default_super_market_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "default_super_market_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "currency_precision",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "currency_precision",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "country",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"currency": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": false,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/dataflows/country')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/currency')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -410,6 +846,303 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_DEV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/delivery_capacity')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "copydataintodb",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select \n\tdtss.id, \n\tcast(dts.start_time as text), \n\tcast(dts.end_time as text),\n\tCASE\n\t\tWHEN dtss.day_of_week = 0 THEN 'sunday'\n\t\tWHEN dtss.day_of_week = 1 THEN 'monday'\n\t\tWHEN dtss.day_of_week = 2 THEN 'tuesday'\n\t\tWHEN dtss.day_of_week = 3 THEN 'wednesday'\n\t\tWHEN dtss.day_of_week = 4 THEN 'thursday'\n\t\tWHEN dtss.day_of_week = 5 THEN 'friday'\n\t\tWHEN dtss.day_of_week = 6 THEN 'saturday'\n\tElse 'sunday'\n\tEND AS day_of_week,\n\tdtss.spree_shipping_method_id as delivery_option_id,\n\tds.id as supermarket_id, \n\tcoalesce(dtss.delivery_capacity,0) as capacity, \n\tnull as time_slot_id, \n\tdtss.enabled as is_enabled,\n\tdtss.created_at,\n\tdtss.updated_at\nfrom danube_time_slots_schedules dtss\nleft join danube_time_slots dts on dts.id  = dtss.time_slot_id \nleft join danube_supermarkets ds on ds.zone_id = dtss.zone_id\norder by dts.id\nlimit 100;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"preCopyScript": {
+									"value": "alter table delivery_capacity add column start_time varchar(100);\nalter table delivery_capacity add column end_time varchar(100);\nalter table delivery_capacity add column delivery_option_id int;\nalter table delivery_capacity add column day_of_week varchar(100);\nALTER TABLE delivery_capacity  ALTER COLUMN time_slot_id DROP NOT NULL;\n\n",
+									"type": "Expression"
+								},
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "time_slot_id",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "time_slot_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "capacity",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "capacity",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "is_enabled",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_enabled",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "start_time",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "start_time",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "end_time",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "end_time",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_option_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "delivery_option_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "day_of_week",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "day_of_week",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "delivery_capacity"
+								}
+							}
+						]
+					},
+					{
+						"name": "updatetimeslotid",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "copydataintodb",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": {
+									"value": "UPDATE delivery_capacity dc\nSET time_slot_id = ts.id\nFROM time_slot ts\nWHERE dc.start_time = ts.start_time\n  AND dc.end_time = ts.end_time\n  AND dc.day_of_week = ts.day_of_week\n  AND dc.delivery_option_id = ts.delivery_option_id;\nSELECT 'Time Slots are Updated' as Time_Slot_status",
+									"type": "Expression"
+								},
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "delivery_capacity"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "updatetimeslotid",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 11
+						}
+					},
+					{
+						"name": "removeadditionalcolumnsadded",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Wait1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "alter table delivery_capacity drop column start_time;\r\nalter table delivery_capacity drop column end_time;\r\nalter table delivery_capacity drop column delivery_option_id;\r\nalter table delivery_capacity drop column day_of_week;\r\nALTER TABLE delivery_capacity ALTER COLUMN time_slot_id SET NOT NULL;\r\nSELECT 'Dropped Additional Columns' as Columns;\r\n",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "delivery_capacity"
+								}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
 				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
 			]
 		},
@@ -530,6 +1263,220 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/employee')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT u.id,\nsru.role_id,\nu.email,\nu.created_at,\nu.updated_at,\nCASE\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\n    ELSE FALSE\n  END AS is_deleted,\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\n  LEFT(COALESCE(CASE\n    WHEN u.mobile_phone_number LIKE CONCAT(\n      '+', u.mobile_number_country_code,\n      '%'\n      ) THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\n      )\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\n      )\n    ELSE COALESCE(u.mobile_phone_number, '')\n  END, ''), 16) AS mobile_number,\n  u.dob,\n  COALESCE(\n  CONCAT('+', u.mobile_number_country_code),\n  ''\n  ) AS country_code,\n  CASE WHEN sa.country_id='0' THEN '1'\n    ELSE sa.country_id\n  END AS country_id,\n\t'others' as gender,\n\t'admin' as user_type,\n\t'available' as availability,\n  sr.name as role_name,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS active,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS status,\n  sa.city\nfrom spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\nleft join spree_addresses sa on sua.address_id = sa.id\norder by u.id asc;"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "FlattenHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "employee",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"employee": {},
+									"city": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": false,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/dataflows/employee')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/feedback')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select \nsfdrw.id,\nsur.first_name,\nsur.last_name,\nsur.email,\nsur.mobile_number_country_code as country_code,\nsur.mobile_phone_number as mobile_number,\nsfdrw.comment as message,\nsfdrw.created_at,\nsfdrw.updated_at,\nsfdrw.user_id\nfrom spree_feedback_reviews sfdrw\nLeft join spree_users sur on sur.id = sfdrw.user_id;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "feedback"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/language')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -598,6 +1545,76 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_DEV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/loyalty_member')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "Select\n  id,\n  user_id,\n  tenant_id,\n  loyalty_member_id,\n  loyalty_id,\n  created_at,\n  updated_at\nfrom spree_loyalty_members;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "loyalty_member"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
 				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
 			]
 		},
@@ -2207,6 +3224,76 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/super_market_payment')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT\n  id AS super_market_id,\n  payment_id,\n  delivery_option_id\nFROM (\n  SELECT\n    id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*home_delivery:(.*)$', '\\1'), 'store_pick_up:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '1' AS delivery_option_id -- Home Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%home_delivery%'\n  UNION ALL\n  SELECT\n    id AS super_market_id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*store_pick_up:(.*)$', '\\1'), 'home_delivery:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '2' AS delivery_option_id -- Store Pickup Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%store_pick_up%'\n) AS subquery_alias\nORDER BY super_market_id;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "super_market_payment"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/supermarket')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2557,6 +3644,76 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_option')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT\n  id AS supermarket_id, \n  2 AS delivery_option_id\nFROM danube_supermarkets\nWHERE payment_options::text LIKE '%store_pick_up%'\n\nUNION\n\nSELECT\n  id,\n  1 AS delivery_option_id\nFROM danube_supermarkets\nWHERE payment_options::text LIKE '%home_delivery%';"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supermarket_delivery_option"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_region')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2667,6 +3824,76 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"table_name": "supermarket_delivery_region"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_type')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "  select * from (SELECT \n      id AS supermarket_id,\n      1 AS delivery_type_id\n  FROM danube_supermarkets\n  WHERE supermarket_type IN ('regular', 'regular_and_express')\n  UNION\n  SELECT \n      id AS supermarket_id,\n      2 AS delivery_type_id\n  FROM danube_supermarkets\n  WHERE supermarket_type IN ('express', 'regular_and_express')) as ds order by supermarket_id asc;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supermarket_delivery_type"
 								}
 							}
 						]
@@ -3254,7 +4481,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/supermarket')]",
+			"name": "[concat(parameters('factoryName'), '/country')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -3269,14 +4496,14 @@
 								"referenceName": "DS_Intermiadate_Result",
 								"type": "DatasetReference"
 							},
-							"name": "supermarket"
+							"name": "source1"
 						},
 						{
 							"linkedService": {
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "city"
+							"name": "currency"
 						}
 					],
 					"sinks": [
@@ -3294,894 +4521,82 @@
 						},
 						{
 							"name": "select1"
-						},
-						{
-							"name": "derivedColumn1"
 						}
 					],
 					"scriptLines": [
 						"source(output(",
 						"          id as integer,",
+						"          iso_country_code as string,",
 						"          name as string,",
-						"          address as string,",
-						"          mobile_number as string,",
-						"          country_id as integer,",
-						"          created_at as timestamp,",
+						"          currency as string,",
 						"          updated_at as timestamp,",
-						"          is_visible as boolean,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          time_slots_lead_time as integer,",
-						"          express_delivery_fee as decimal(38,18),",
-						"          call_mask as boolean,",
-						"          minimum_total_amount_for_free_delivery as decimal(38,18),",
-						"          description as string,",
-						"          state_id as integer,",
-						"          city as string",
+						"          created_at as timestamp,",
+						"          default_super_market_id as integer,",
+						"          currency_precision as integer",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> supermarket",
+						"     format: 'parquet') ~> source1",
 						"source(output(",
 						"          id as integer,",
 						"          created_at as timestamp,",
 						"          updated_at as timestamp,",
 						"          name as string,",
-						"          country_id as integer,",
-						"          abbreviation as string,",
-						"          city_image_url as string,",
-						"          is_visible as boolean,",
-						"          deleted_at as timestamp,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          translation_id as string,",
-						"          state_id as string",
+						"          deleted_at as timestamp",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     format: 'query',",
-						"     query: 'select * from city',",
+						"     format: 'table',",
+						"     tableName: 'currency',",
+						"     schemaName: 'public',",
 						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
-						"supermarket, city join(supermarket@state_id == toInteger(city@state_id)",
-						"     && city == city@name,",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> currency",
+						"source1, currency join(currency == currency@name,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> join1",
-						"derivedColumn1 select(mapColumn(",
-						"          id = supermarket@id,",
-						"          name = supermarket@name,",
-						"          address,",
-						"          mobile_number,",
-						"          country_id = supermarket@country_id,",
-						"          created_at = supermarket@created_at,",
-						"          updated_at = supermarket@updated_at,",
-						"          is_visible = supermarket@is_visible,",
-						"          latitude = supermarket@latitude,",
-						"          longitude = supermarket@longitude,",
-						"          time_slots_lead_time,",
-						"          express_delivery_fee,",
-						"          call_mask,",
-						"          minimum_total_amount_for_free_delivery,",
-						"          description,",
-						"          city_id = city@id,",
-						"          translation_id",
+						"join1 select(mapColumn(",
+						"          id = source1@id,",
+						"          iso_country_code,",
+						"          name = source1@name,",
+						"          updated_at = source1@updated_at,",
+						"          created_at = source1@created_at,",
+						"          default_super_market_id,",
+						"          currency_precision,",
+						"          currency_id = currency@id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> select1",
-						"join1 derive(translation_id = coalesce(translation_id,'')) ~> derivedColumn1",
 						"select1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
-						"     tableName: 'super_market',",
+						"     tableName: 'currency',",
 						"     schemaName: 'public',",
 						"     deletable: false,",
 						"     insertable: true,",
 						"     updateable: false,",
 						"     upsertable: false,",
 						"     store: 'postgres',",
-						"     batchSize: 100000,",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink1"
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          iso_country_code,",
+						"          name,",
+						"          updated_at,",
+						"          created_at,",
+						"          default_super_market_id,",
+						"          currency_precision,",
+						"          currency_id",
+						"     )) ~> sink1"
 					]
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/super_market_payment')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n  id AS super_market_id,\n  payment_id,\n  delivery_option_id\nFROM (\n  SELECT\n    id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*home_delivery:(.*)$', '\\1'), 'store_pick_up:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '1' AS delivery_option_id -- Home Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%home_delivery%'\n  UNION ALL\n  SELECT\n    id AS super_market_id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*store_pick_up:(.*)$', '\\1'), 'home_delivery:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '2' AS delivery_option_id -- Store Pickup Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%store_pick_up%'\n) AS subquery_alias\nORDER BY super_market_id;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "super_market_payment"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_option')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n  id AS supermarket_id, \n  2 AS delivery_option_id\nFROM danube_supermarkets\nWHERE payment_options::text LIKE '%store_pick_up%'\n\nUNION\n\nSELECT\n  id,\n  1 AS delivery_option_id\nFROM danube_supermarkets\nWHERE payment_options::text LIKE '%home_delivery%';"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "supermarket_delivery_option"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_type')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "  select * from (SELECT \n      id AS supermarket_id,\n      1 AS delivery_type_id\n  FROM danube_supermarkets\n  WHERE supermarket_type IN ('regular', 'regular_and_express')\n  UNION\n  SELECT \n      id AS supermarket_id,\n      2 AS delivery_type_id\n  FROM danube_supermarkets\n  WHERE supermarket_type IN ('express', 'regular_and_express')) as ds order by supermarket_id asc;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "supermarket_delivery_type"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/feedback')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select \nsfdrw.id,\nsur.first_name,\nsur.last_name,\nsur.email,\nsur.mobile_number_country_code as country_code,\nsur.mobile_phone_number as mobile_number,\nsfdrw.comment as message,\nsfdrw.created_at,\nsfdrw.updated_at,\nsfdrw.user_id\nfrom spree_feedback_reviews sfdrw\nLeft join spree_users sur on sur.id = sfdrw.user_id;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "feedback"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/loyalty_member')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "Select\n  id,\n  user_id,\n  tenant_id,\n  loyalty_member_id,\n  loyalty_id,\n  created_at,\n  updated_at\nfrom spree_loyalty_members;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "loyalty_member"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/delivery_capacity')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "copydataintodb",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select \n\tdtss.id, \n\tcast(dts.start_time as text), \n\tcast(dts.end_time as text),\n\tCASE\n\t\tWHEN dtss.day_of_week = 0 THEN 'sunday'\n\t\tWHEN dtss.day_of_week = 1 THEN 'monday'\n\t\tWHEN dtss.day_of_week = 2 THEN 'tuesday'\n\t\tWHEN dtss.day_of_week = 3 THEN 'wednesday'\n\t\tWHEN dtss.day_of_week = 4 THEN 'thursday'\n\t\tWHEN dtss.day_of_week = 5 THEN 'friday'\n\t\tWHEN dtss.day_of_week = 6 THEN 'saturday'\n\tElse 'sunday'\n\tEND AS day_of_week,\n\tdtss.spree_shipping_method_id as delivery_option_id,\n\tds.id as supermarket_id, \n\tcoalesce(dtss.delivery_capacity,0) as capacity, \n\tnull as time_slot_id, \n\tdtss.enabled as is_enabled,\n\tdtss.created_at,\n\tdtss.updated_at\nfrom danube_time_slots_schedules dtss\nleft join danube_time_slots dts on dts.id  = dtss.time_slot_id \nleft join danube_supermarkets ds on ds.zone_id = dtss.zone_id\norder by dts.id\nlimit 100;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"preCopyScript": {
-									"value": "alter table delivery_capacity add column start_time varchar(100);\nalter table delivery_capacity add column end_time varchar(100);\nalter table delivery_capacity add column delivery_option_id int;\nalter table delivery_capacity add column day_of_week varchar(100);\nALTER TABLE delivery_capacity  ALTER COLUMN time_slot_id DROP NOT NULL;\n\n",
-									"type": "Expression"
-								},
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "supermarket_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "supermarket_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "time_slot_id",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "time_slot_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "capacity",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "capacity",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "is_enabled",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_enabled",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "start_time",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "start_time",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "end_time",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "end_time",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "delivery_option_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "delivery_option_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "day_of_week",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "day_of_week",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "delivery_capacity"
-								}
-							}
-						]
-					},
-					{
-						"name": "updatetimeslotid",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "copydataintodb",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": {
-									"value": "UPDATE delivery_capacity dc\nSET time_slot_id = ts.id\nFROM time_slot ts\nWHERE dc.start_time = ts.start_time\n  AND dc.end_time = ts.end_time\n  AND dc.day_of_week = ts.day_of_week\n  AND dc.delivery_option_id = ts.delivery_option_id;\nSELECT 'Time Slots are Updated' as Time_Slot_status",
-									"type": "Expression"
-								},
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "delivery_capacity"
-								}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "Wait1",
-						"type": "Wait",
-						"dependsOn": [
-							{
-								"activity": "updatetimeslotid",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"waitTimeInSeconds": 11
-						}
-					},
-					{
-						"name": "removeadditionalcolumnsadded",
-						"type": "Lookup",
-						"dependsOn": [
-							{
-								"activity": "Wait1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "alter table delivery_capacity drop column start_time;\r\nalter table delivery_capacity drop column end_time;\r\nalter table delivery_capacity drop column delivery_option_id;\r\nalter table delivery_capacity drop column day_of_week;\r\nALTER TABLE delivery_capacity ALTER COLUMN time_slot_id SET NOT NULL;\r\nSELECT 'Dropped Additional Columns' as Columns;\r\n",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "delivery_capacity"
-								}
-							},
-							"firstRowOnly": false
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_USER_DB_PRODUCTION')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/employee')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT u.id,\nsru.role_id,\nu.email,\nu.created_at,\nu.updated_at,\nCASE\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\n    ELSE FALSE\n  END AS is_deleted,\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\n  LEFT(COALESCE(CASE\n    WHEN u.mobile_phone_number LIKE CONCAT(\n      '+', u.mobile_number_country_code,\n      '%'\n      ) THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\n      )\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\n      )\n    ELSE COALESCE(u.mobile_phone_number, '')\n  END, ''), 16) AS mobile_number,\n  u.dob,\n  COALESCE(\n  CONCAT('+', u.mobile_number_country_code),\n  ''\n  ) AS country_code,\n  CASE WHEN sa.country_id='0' THEN '1'\n    ELSE sa.country_id\n  END AS country_id,\n\t'others' as gender,\n\t'admin' as user_type,\n\t'available' as availability,\n  sr.name as role_name,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS active,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS status,\n  sa.city\nfrom spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\nleft join spree_addresses sa on sua.address_id = sa.id\norder by u.id asc;"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings",
-									"copyBehavior": "FlattenHierarchy"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "employee",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"employee": {},
-									"city": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": false,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/dataflows/employee')]"
 			]
 		},
 		{
@@ -4348,6 +4763,146 @@
 						"     updateable: false,",
 						"     upsertable: false,",
 						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/supermarket')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "supermarket"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "city"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          address as string,",
+						"          mobile_number as string,",
+						"          country_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          is_visible as boolean,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          time_slots_lead_time as integer,",
+						"          express_delivery_fee as decimal(38,18),",
+						"          call_mask as boolean,",
+						"          minimum_total_amount_for_free_delivery as decimal(38,18),",
+						"          description as string,",
+						"          state_id as integer,",
+						"          city as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> supermarket",
+						"source(output(",
+						"          id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          name as string,",
+						"          country_id as integer,",
+						"          abbreviation as string,",
+						"          city_image_url as string,",
+						"          is_visible as boolean,",
+						"          deleted_at as timestamp,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          translation_id as string,",
+						"          state_id as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'query',",
+						"     query: 'select * from city',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
+						"supermarket, city join(supermarket@state_id == toInteger(city@state_id)",
+						"     && city == city@name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"derivedColumn1 select(mapColumn(",
+						"          id = supermarket@id,",
+						"          name = supermarket@name,",
+						"          address,",
+						"          mobile_number,",
+						"          country_id = supermarket@country_id,",
+						"          created_at = supermarket@created_at,",
+						"          updated_at = supermarket@updated_at,",
+						"          is_visible = supermarket@is_visible,",
+						"          latitude = supermarket@latitude,",
+						"          longitude = supermarket@longitude,",
+						"          time_slots_lead_time,",
+						"          express_delivery_fee,",
+						"          call_mask,",
+						"          minimum_total_amount_for_free_delivery,",
+						"          description,",
+						"          city_id = city@id,",
+						"          translation_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"join1 derive(translation_id = coalesce(translation_id,'')) ~> derivedColumn1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'super_market',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     batchSize: 100000,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> sink1"
 					]
