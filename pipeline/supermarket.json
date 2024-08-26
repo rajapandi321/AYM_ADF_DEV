@@ -16,13 +16,38 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "PostgreSqlV2Source"
+						"type": "PostgreSqlV2Source",
+						"query": "select\n   ds.id,\n   dst.name,\n\tconcat(dst.address1,' ',dst.address2) as address,\n    LEFT(COALESCE(REPLACE(REPLACE(ds.phone, '+966', ''), '+973', ''), ''), 16) AS mobile_number,\n   ds.country_id,\n   ds.created_at,\n   ds.updated_at,\n   ds.visible as is_visible,\n   ds.latitude,\n   ds.longitude,\n   ds.time_slots_schedule_time_offset_override AS time_slots_lead_time,\n   ds.express_fee AS express_delivery_fee,\n   ds.call_masking as call_mask,\n   ds.min_item_total_for_free_delivery as minimum_total_amount_for_free_delivery,\n   COALESCE(dst.description, '') as description\nfrom danube_supermarkets ds\nleft join danube_supermarket_translations dst on dst.danube_supermarket_id =ds.id and dst.locale='en'\norder by ds.id;"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings",
+							"copyBehavior": "PreserveHierarchy"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
 						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
 						"type": "DatasetReference"
 					}
 				]

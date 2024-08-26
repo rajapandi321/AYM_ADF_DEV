@@ -1,0 +1,19 @@
+{
+	"name": "DS_Intermiadate_Result",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_CrossDB_Connection_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"container": "production-migration"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}
