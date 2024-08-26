@@ -223,7 +223,8 @@
 						"parameters": {
 							"table_name": "delivery_capacity"
 						}
-					}
+					},
+					"firstRowOnly": false
 				}
 			},
 			{
