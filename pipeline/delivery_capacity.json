@@ -24,7 +24,7 @@
 						"writeBatchSize": 1000000,
 						"writeBatchTimeout": "00:30:00",
 						"preCopyScript": {
-							"value": "alter table delivery_capacity add column start_time varchar(100);\nalter table delivery_capacity add column end_time varchar(100);\nalter table delivery_capacity add column delivery_option_id int;\nalter table delivery_capacity add column day_of_week varchar(100);\nALTER TABLE delivery_capacity alter COLUMN time_slot_id INT NULL;\n",
+							"value": "alter table delivery_capacity add column start_time varchar(100);\nalter table delivery_capacity add column end_time varchar(100);\nalter table delivery_capacity add column delivery_option_id int;\nalter table delivery_capacity add column day_of_week varchar(100);\nALTER TABLE delivery_capacity  ALTER COLUMN time_slot_id DROP NOT NULL;\n\n",
 							"type": "Expression"
 						},
 						"writeMethod": "CopyCommand"
