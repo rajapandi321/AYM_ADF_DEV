@@ -40,6 +40,9 @@
 				},
 				{
 					"name": "window1"
+				},
+				{
+					"name": "select2"
 				}
 			],
 			"scriptLines": [
@@ -121,7 +124,29 @@
 				"select1 window(over(id),",
 				"     asc(role_name, false),",
 				"     final_column = rowNumber()==1) ~> window1",
-				"window1 sink(allowSchemaDrift: true,",
+				"window1 select(mapColumn(",
+				"          id,",
+				"          role_id,",
+				"          email,",
+				"          created_at,",
+				"          updated_at,",
+				"          is_deleted,",
+				"          first_name,",
+				"          last_name,",
+				"          mobile_number,",
+				"          dob,",
+				"          country_code,",
+				"          country_id,",
+				"          gender,",
+				"          user_type,",
+				"          availability,",
+				"          active,",
+				"          status,",
+				"          city_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
 				"     tableName: 'employee',",
