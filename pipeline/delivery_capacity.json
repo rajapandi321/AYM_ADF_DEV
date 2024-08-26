@@ -132,8 +132,8 @@
 							{
 								"source": {
 									"name": "end_time",
-									"type": "TimeSpan",
-									"physicalType": "time without time zone"
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "end_time",
