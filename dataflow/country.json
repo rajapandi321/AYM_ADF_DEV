@@ -13,15 +13,45 @@
 						"type": "DatasetReference"
 					},
 					"name": "source1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "currency"
 				}
 			],
 			"sinks": [],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "join1"
+				}
+			],
 			"scriptLines": [
 				"source(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet') ~> source1"
+				"     format: 'parquet') ~> source1",
+				"source(output(",
+				"          id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          name as string,",
+				"          deleted_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'currency',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> currency",
+				"source1, currency join(source1@name == currency@name,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1"
 			]
 		}
 	}
