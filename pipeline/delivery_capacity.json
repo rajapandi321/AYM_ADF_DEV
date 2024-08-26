@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
+				"name": "copydataintodb",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -190,11 +190,11 @@
 				]
 			},
 			{
-				"name": "Lookup1",
+				"name": "updatetimeslotid",
 				"type": "Lookup",
 				"dependsOn": [
 					{
-						"activity": "Copy data1",
+						"activity": "copydataintodb",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -232,7 +232,7 @@
 				"type": "Wait",
 				"dependsOn": [
 					{
-						"activity": "Lookup1",
+						"activity": "updatetimeslotid",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -244,7 +244,7 @@
 				}
 			},
 			{
-				"name": "Lookup2",
+				"name": "removeadditionalcolumnsadded",
 				"type": "Lookup",
 				"dependsOn": [
 					{
