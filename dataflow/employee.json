@@ -24,9 +24,9 @@
 			],
 			"sinks": [
 				{
-					"dataset": {
-						"referenceName": "DS_V2_USER_DB_PRODUCTION",
-						"type": "DatasetReference"
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
 					},
 					"name": "sink1"
 				}
@@ -115,11 +115,14 @@
 				"     skipDuplicateMapOutputs: true) ~> select1",
 				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
 				"     format: 'table',",
+				"     tableName: 'employee',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> sink1"
 			]
