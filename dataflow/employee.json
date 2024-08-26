@@ -37,6 +37,9 @@
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "window1"
 				}
 			],
 			"scriptLines": [
@@ -113,7 +116,8 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"select1 window(over(id)) ~> window1",
+				"window1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
 				"     tableName: 'employee',",
