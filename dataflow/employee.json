@@ -15,6 +15,10 @@
 					"name": "source1"
 				},
 				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
 					"name": "source2"
 				}
 			],
@@ -26,8 +30,28 @@
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet',",
 				"     wildcardPaths:['*.parquet']) ~> source1",
-				"source(allowSchemaDrift: true,",
-				"     validateSchema: false) ~> source2"
+				"source(output(",
+				"          id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          name as string,",
+				"          country_id as integer,",
+				"          abbreviation as string,",
+				"          city_image_url as string,",
+				"          is_visible as boolean,",
+				"          deleted_at as timestamp,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          translation_id as string,",
+				"          state_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'city',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source2"
 			]
 		}
 	}
