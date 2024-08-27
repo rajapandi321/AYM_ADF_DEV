@@ -817,7 +817,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT a.id,\n       a.iso3 AS iso_country_code,\n       a.name,\n       a.currency,\n       a.updated_at,\n       a.created_at,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a ;"
+								"query": "SELECT a.id,\n       a.iso3 AS iso_country_code,\n       a.name,\n       a.currency,\n       a.updated_at,\n       COALESCE(a.created_at, CURRENT_TIMESTAMP) AS created_at,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a;\n"
 							},
 							"sink": {
 								"type": "ParquetSink",

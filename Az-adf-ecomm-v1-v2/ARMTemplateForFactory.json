@@ -859,7 +859,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT a.id,\n       a.iso3 AS iso_country_code,\n       a.name,\n       a.currency,\n       a.updated_at,\n       a.created_at,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a ;"
+								"query": "SELECT a.id,\n       a.iso3 AS iso_country_code,\n       a.name,\n       a.currency,\n       a.updated_at,\n       COALESCE(a.created_at, CURRENT_TIMESTAMP) AS created_at,\n       a.default_supermarket_id AS default_super_market_id,\n       a.currency_precision\nFROM   spree_countries a;\n"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -4095,8 +4095,6 @@
 					{
 						"name": "Copy data1",
 						"type": "Copy",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -4109,7 +4107,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n    id,\n    supermarket_id,\n    2 AS delivery_type_id,\n    (\n        SELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(coverage)::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_X(ST_AsText(center)) AS center_longitude,\n    ST_Y(ST_AsText(center)) AS center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM\n    danube_express_supermarkets;"
+								"query": "SELECT\n    supermarket_id,\n    2 AS delivery_type_id,\n    (\n        SELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(coverage)::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_X(ST_AsText(center)) AS center_longitude,\n    ST_Y(ST_AsText(center)) AS center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM\n    danube_express_supermarkets;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -4120,6 +4118,116 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "json"
+										},
+										"sink": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color_opacity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "fill_color_opacity",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -4166,7 +4274,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    sz.id,\n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n        SELECT \n            json_agg(coordinate) \n        FROM (\n            SELECT \n                json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null;"
+								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n        SELECT \n            json_agg(coordinate) \n        FROM (\n            SELECT \n                json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -4177,6 +4285,116 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "json"
+										},
+										"sink": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color_opacity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "fill_color_opacity",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -4364,8 +4582,6 @@
 					{
 						"name": "Copy data1",
 						"type": "Copy",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -4378,7 +4594,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\r\n  u.id,\r\n  CASE\r\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n    ELSE FALSE\r\n  END AS is_deleted,\r\n  u.created_at,\r\n  u.updated_at,\r\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\r\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\r\n  u.email,\r\n  'others' as gender,\r\n  COALESCE(CONCAT('+', u.mobile_number_country_code),'') AS country_code,\r\n  LEFT(COALESCE(CASE\r\n    WHEN u.mobile_phone_number LIKE CONCAT(\r\n      '+', u.mobile_number_country_code,\r\n      '%'\r\n      ) THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\r\n      )\r\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\r\n      )\r\n    ELSE COALESCE(u.mobile_phone_number, '')\r\n  END, ''), 16) AS mobile_number,\r\n  cast(u.dob as Text),\r\n  COALESCE(u.referral_code, '') AS referral_code,\r\n  CASE WHEN u.locale ='en' THEN 1\r\n\tELSE 2\r\n   END AS language_id,\r\n  a.city,\r\n  a.latitude,\r\n  a.longitude,\r\n--   when country_id is '0' updated as '1' \r\n  CASE\r\n    WHEN a.country_id='0' THEN '1'\r\n    ELSE a.country_id\r\n  END AS country_id,\r\n  True as receive_marketing_promotions,\r\n  case \r\n  \twhen sua.provider = 'google_oauth2' then 'google'\r\n\telse sua.provider end as login_type,\r\n\tsua.uid as social_id,\r\n\t0 as balance,\r\n\tu.blacklisted_at,\r\n\tu.blacklisted_reason\r\n\r\nFROM spree_users u\r\nLEFT JOIN spree_user_addresses ua ON u.id = ua.user_id AND ua.default = TRUE\r\nLEFT JOIN spree_addresses a ON ua.address_id = a.id\r\nleft join spree_user_authentications sua on u.id = sua.user_id \r\nORDER BY u.id ASC;"
+								"query": "with cte as\r\n(SELECT\r\n  u.id,\r\n  CASE\r\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n    ELSE FALSE\r\n  END AS is_deleted,\r\n  u.created_at,\r\n  u.updated_at,\r\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\r\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\r\n  u.email,\r\n  'others' as gender,\r\n  COALESCE(CONCAT('+', u.mobile_number_country_code),'') AS country_code,\r\n  LEFT(COALESCE(CASE\r\n    WHEN u.mobile_phone_number LIKE CONCAT(\r\n      '+', u.mobile_number_country_code,\r\n      '%'\r\n      ) THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\r\n      )\r\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\r\n      )\r\n    ELSE COALESCE(u.mobile_phone_number, '')\r\n  END, ''), 16) AS mobile_number,\r\n  cast(u.dob as Text) as dob ,\r\n  COALESCE(u.referral_code, '') AS referral_code,\r\n  CASE WHEN u.locale ='en' THEN 1\r\n\tELSE 2\r\n   END AS language_id,\r\n  a.city,\r\n  a.latitude,\r\n  a.longitude,\r\n--   when country_id is '0' updated as '1' \r\n  CASE\r\n    WHEN a.country_id='0' THEN '1'\r\n    ELSE a.country_id\r\n  END AS country_id,\r\n  True as receive_marketing_promotions,\r\n  case \r\n  \twhen sua.provider = 'google_oauth2' then 'google'\r\n\telse sua.provider end as login_type,\r\n\tsua.uid as social_id,\r\n\t0 as balance,\r\n\tu.blacklisted_at,\r\n\tu.blacklisted_reason,\r\n\tROW_NUMBER() over (partition by u.id order by sua.updated_at desc) as rn\r\n\r\nFROM spree_users u\r\nLEFT JOIN spree_user_addresses ua ON u.id = ua.user_id AND ua.default = TRUE\r\nLEFT JOIN spree_addresses a ON ua.address_id = a.id\r\nleft join spree_user_authentications sua on u.id = sua.user_id \r\nORDER BY u.id ASC)\r\n\r\nselect id, is_deleted, created_at, updated_at, first_name, last_name, email, gender, country_code, mobile_number, dob, referral_code, language_id, city,\r\n\tlatitude, longitude, country_id, receive_marketing_promotions, login_type, social_id, balance, blacklisted_at, blacklisted_reason\r\n\tfrom cte \r\n\twhere rn = 1;"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -5350,7 +5566,7 @@
 						"select1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
-						"     tableName: 'currency',",
+						"     tableName: 'country',",
 						"     schemaName: 'public',",
 						"     deletable: false,",
 						"     insertable: true,",
@@ -6152,6 +6368,294 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"table_name": "bin_category"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_V2_PRODUCT_DB_PRODUCTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/recipe')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n    au.id,\n    COALESCE(sket_en.name, '') AS name_en,\n    COALESCE(sket_en.recipe, '') AS recipe_en,\n    au.calories,\n    au.cuisine_id,\n    CASE WHEN regexp_replace(au.servings, '\\D*(\\d+).*', '\\1') <> '' \n         THEN CAST(regexp_replace(au.servings, '\\D*(\\d+).*', '\\1') AS INTEGER)\n         ELSE 0 \n    END AS servings,\n    au.updated_at,\n    au.visible AS is_visible,\n    au.created_at,\n    COALESCE(sket_en.description, '') AS description_en,\n    COALESCE(sket_ar.name, '') AS name_ar,\n    COALESCE(sket_ar.recipe, '') AS recipe_ar,\n    COALESCE(sket_ar.description, '') AS description_ar,\n    1 AS country_id,\n    '' AS cuisines_banner_image_url,\n    '' AS recipe_banner_image_url,\n    '' AS app_home_image_url,\n    0 AS position\nFROM \n    spree_kitchen_recipes au\nLEFT JOIN \n    spree_kitchen_recipe_translations sket_en ON (sket_en.spree_kitchen_recipe_id = au.id AND sket_en.locale = 'en')\nLEFT JOIN \n    spree_kitchen_recipe_translations sket_ar ON (sket_ar.spree_kitchen_recipe_id = au.id AND sket_ar.locale = 'ar');"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "cuisine_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "cuisine_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "servings",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "servings",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "description_en",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "description_en",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "description_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "description_ar",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "recipe_en",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "recipe_en",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "recipe_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "recipe_ar",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "calories",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "calories",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "position",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "position",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "app_home_image_url",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "app_home_image_url",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "recipe_banner_image_url",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "recipe_banner_image_url",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "cuisines_banner_image_url",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "cuisines_banner_image_url",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "recipe"
 								}
 							}
 						]
