@@ -777,7 +777,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "with cte as(\r\n    select id, temp_taxon_id\r\n    from brand\r\n)\r\nupdate product p set p.brand_id = cte.id\r\nwhere p.temp_taxon_id = cte.temp_taxon_id;",
+						"query": "WITH cte AS (\r\n    SELECT id, temp_taxon_id\r\n    FROM brand\r\n)\r\nUPDATE product p\r\nSET brand_id = cte.id\r\nFROM cte\r\nWHERE p.temp_taxon_id = cte.temp_taxon_id;\r\nSELECT 'Update brand ID' as Update;",
 						"partitionOption": "None"
 					},
 					"dataset": {
