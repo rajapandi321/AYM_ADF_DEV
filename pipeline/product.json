@@ -614,6 +614,18 @@
 									"type": "Double",
 									"physicalType": "double precision"
 								}
+							},
+							{
+								"source": {
+									"name": "temp_supplier_code",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "temp_supplier_code",
+									"type": "String",
+									"physicalType": "character varying"
+								}
 							}
 						],
 						"typeConversion": true,
