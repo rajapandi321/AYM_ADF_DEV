@@ -28,6 +28,44 @@
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "master_product_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "master_product_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "child_product_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "child_product_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "quantity",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "quantity",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							}
+						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
@@ -46,7 +84,7 @@
 						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
 						"type": "DatasetReference",
 						"parameters": {
-							"table_name": "bundle_product"
+							"table_name": "bundle_products"
 						}
 					}
 				]
