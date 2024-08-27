@@ -139,7 +139,7 @@
 							},
 							{
 								"source": {
-									"name": "id",
+									"name": "category_id",
 									"type": "Int32",
 									"physicalType": "integer"
 								},
@@ -391,8 +391,8 @@
 							},
 							{
 								"source": {
-									"name": "id",
-									"type": "Int32",
+									"name": "brand_id",
+									"type": "Int64",
 									"physicalType": "bigint"
 								},
 								"sink": {
@@ -427,8 +427,9 @@
 							},
 							{
 								"source": {
-									"name": "",
-									"physicalType": "integer"
+									"name": "perform_liquid_weight_check",
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "perform_liquid_weight_check",
