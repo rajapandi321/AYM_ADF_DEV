@@ -15,8 +15,41 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
-				}
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT \r\n    id AS offline_product_id,\r\n    CASE \r\n        WHEN (barcode_element ~ E'^\\\\d+$') THEN CAST(barcode_element AS BIGINT)\r\n        ELSE -1\r\n    END AS barcode,\r\n    1 AS \"order\"\r\nFROM   \r\n    spree_custom_products\r\nCROSS JOIN LATERAL unnest(barcodes) AS barcode_element\r\nORDER BY \r\n    id DESC;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "offline_product_barcode"
+						}
+					}
+				]
 			}
 		],
 		"folder": {
