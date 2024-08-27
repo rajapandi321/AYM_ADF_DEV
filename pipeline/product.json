@@ -25,7 +25,7 @@
 						"type": "AzurePostgreSQLSink",
 						"writeBatchSize": 1000000,
 						"writeBatchTimeout": "00:30:00",
-						"preCopyScript": "ALTER TABLE product ADD COLUMN temp_taxon_id INT;",
+						"preCopyScript": "ALTER TABLE product ADD COLUMN temp_taxon_id INT;\nALTER TABLE product ADD COLUMN temp_supplier_code varchar(20);",
 						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
@@ -635,6 +635,8 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
