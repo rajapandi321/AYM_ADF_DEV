@@ -1,0 +1,60 @@
+{
+	"name": "inventory_modifiers",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT id,\n       product_id,\n       Cast(action_price as double precision),\n       action_in_stock AS track_stock,\n       COALESCE(rule_supermarket_id, -1) AS supermarket_id,\n       created_at,\n       updated_at,\n\t   Cast(action_sale_price as double precision) AS sale_price,\n       Date(action_sale_start) AS sale_start_date,\n       Substring(To_char(action_sale_start, 'HH24:MI:SS'), 1, 8) AS sale_start_time,\n       Date(action_sale_end) AS sale_end_date,\n       Substring(To_char(action_sale_end, 'HH24:MI:SS'), 1, 8)   AS sale_end_time,\n       Date(availability_start_time) AS availability_start_date,\n       -- availability_start_time (timestamp without time zone so we need to extract using string manipulation) \n       Date(availability_end_time) AS availability_end_date,\n       stock_quantity,\n       action_sale_price AS cost_price\nFROM   spree_product_inventory_modifiers\norder by id ASC;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "inventory_modifiers"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Product DB"
+		},
+		"annotations": []
+	}
+}
