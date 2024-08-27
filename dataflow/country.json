@@ -88,7 +88,7 @@
 				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
-				"     tableName: 'currency',",
+				"     tableName: 'country',",
 				"     schemaName: 'public',",
 				"     deletable: false,",
 				"     insertable: true,",
