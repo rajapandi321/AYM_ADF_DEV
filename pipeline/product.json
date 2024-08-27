@@ -689,7 +689,7 @@
 				}
 			},
 			{
-				"name": "Lookup2",
+				"name": "updatebrandidandsupplierid",
 				"type": "Lookup",
 				"dependsOn": [
 					{
