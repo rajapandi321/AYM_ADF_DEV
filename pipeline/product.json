@@ -689,8 +689,10 @@
 				}
 			},
 			{
-				"name": "updatebrandidandsupplierid",
+				"name": "updatesupplierID",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "updatetemptaxonid",
@@ -741,6 +743,41 @@
 					"source": {
 						"type": "AzurePostgreSqlSource",
 						"query": "Alter table product add column temp_supplier_code varchar(20);\nSELECT 'Adding Supplier_Code' As Update",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "product"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "updatebrandID",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "updatesupplierID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "with cte as(\r\n    select id, temp_taxon_id\r\n    from brand\r\n)\r\nupdate product p set p.brand_id = cte.id\r\nwhere p.temp_taxon_id = cte.temp_taxon_id;",
 						"partitionOption": "None"
 					},
 					"dataset": {
