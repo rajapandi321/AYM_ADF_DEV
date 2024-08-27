@@ -109,6 +109,18 @@
 									"type": "String",
 									"physicalType": "character varying"
 								}
+							},
+							{
+								"source": {
+									"name": "temp_taxon_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "temp_taxon_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
 							}
 						],
 						"typeConversion": true,
