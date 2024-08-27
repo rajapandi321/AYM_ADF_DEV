@@ -5,6 +5,8 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Lookup1",
@@ -147,7 +149,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "alter table brand add column temp_taxon_id int;",
+						"query": "alter table brand add column temp_taxon_id int;\nSELECT 'Adding Temp Texon' as UpdateTaxon;",
 						"partitionOption": "None"
 					},
 					"dataset": {
