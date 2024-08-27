@@ -691,6 +691,8 @@
 			{
 				"name": "updatesupplierIDandbrandID",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "updatetemptaxonid",
@@ -751,6 +753,40 @@
 						}
 					},
 					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "RemovingUnwantedcolumnsfromproduct",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "updatesupplierIDandbrandID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "alter table product drop column temp_taxon_id;\r\nalter table product drop column temp_supplier_code;\r\nSELECT 'Remove unwanted Columns' as Removed;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "product"
+						}
+					}
 				}
 			}
 		],
