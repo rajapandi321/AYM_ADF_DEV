@@ -1,0 +1,60 @@
+{
+	"name": "brand",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT \r\n  rt.id,\r\n  COALESCE(rt.name_en,'') as name_en,\r\n  COALESCE(CASE\r\n  \tWHEN LENGTH(rt.name_en) < 5 THEN UPPER(REGEXP_REPLACE(TRANSLATE(rt.name_en, ' ', '_'), '[^a-zA-Z0-9_]', '', 'g'))||'_' || rt.id\r\n\tELSE UPPER(SUBSTRING(REGEXP_REPLACE(TRANSLATE(rt.name_en, ' ', ''), '[^a-zA-Z0-9]', '', 'g'), 1, 1)) ||\r\n           UPPER(SUBSTRING(REGEXP_REPLACE(SUBSTRING(REGEXP_REPLACE(TRANSLATE(rt.name_en, ' ', ''), '[^a-zA-Z0-9]', ' ', 'g'), 2), ' ', ''), 1, 1)) ||\r\n           '_' || rt.id\r\n  END,'') AS code,\r\n  rt.created_at,\r\n  rt.updated_at,\r\n  rt.temp_taxon_id,\r\n  COALESCE(rt.name_ar,'') as name_ar\r\nFROM (SELECT \r\n    ROW_NUMBER() OVER () AS id,\r\n    st.id AS temp_taxon_id,\r\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.name END) AS name_en,\r\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.name END) AS name_ar,\r\n    st.created_at,\r\n    st.updated_at\r\nFROM spree_taxons st\r\nLEFT JOIN spree_taxon_translations stt ON stt.spree_taxon_id = st.id\r\nWHERE st.parent_id in (\r\n  select st.id as brand_taxon_id from spree_taxons st \r\n  join spree_taxon_translations stt on stt.spree_taxon_id = st.id and locale = 'en'\r\n  where stt.\"name\"  = 'Brands'\r\n)\r\nGROUP BY st.id) as rt\r\norder by rt.temp_taxon_id asc"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "brand"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Product DB"
+		},
+		"annotations": []
+	}
+}
