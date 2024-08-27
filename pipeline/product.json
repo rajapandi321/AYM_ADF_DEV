@@ -734,7 +734,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "Alter table product add column temp_supplier_code varchar(20);\nSELECT 'Adding Supplier_Code' As Update",
+						"query": "Alter table product add column temp_supplier_code varchar(200);\nSELECT 'Adding Supplier_Code' As Update",
 						"partitionOption": "None"
 					},
 					"dataset": {
