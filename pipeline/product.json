@@ -689,10 +689,8 @@
 				}
 			},
 			{
-				"name": "updatesupplierID",
+				"name": "updatesupplierIDandbrandID",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "updatetemptaxonid",
@@ -712,7 +710,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "With cte AS\n  (select id, name as supplier_code \n  from supplier\n)\nUPDATE product p\nSET supplier_id = cte.id\nFROM cte\nWHERE p.temp_supplier_code = cte.supplier_code;\nSELECT 'Update Supplier ID' as ID;",
+						"query": "With cte AS\n  (select id, name as supplier_code \n  from supplier\n)\nUPDATE product p\nSET supplier_id = cte.id\nFROM cte\nWHERE p.temp_supplier_code = cte.supplier_code;\nWITH cte1 AS (\n    SELECT id, temp_taxon_id\n    FROM brand\n)\nUPDATE product p\nSET brand_id = cte1.id\nFROM cte1\nWHERE p.temp_taxon_id = cte1.temp_taxon_id;\nSELECT 'Update Supplier ID and Brand ID' as ID;",
 						"partitionOption": "None"
 					},
 					"dataset": {
@@ -743,41 +741,6 @@
 					"source": {
 						"type": "AzurePostgreSqlSource",
 						"query": "Alter table product add column temp_supplier_code varchar(20);\nSELECT 'Adding Supplier_Code' As Update",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "product"
-						}
-					},
-					"firstRowOnly": false
-				}
-			},
-			{
-				"name": "updatebrandID",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "updatesupplierID",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": "WITH cte AS (\r\n    SELECT id, temp_taxon_id\r\n    FROM brand\r\n)\r\nUPDATE product p\r\nSET brand_id = cte.id\r\nFROM cte\r\nWHERE p.temp_taxon_id = cte.temp_taxon_id;\r\nSELECT 'Update brand ID' as Update;",
 						"partitionOption": "None"
 					},
 					"dataset": {
