@@ -40,6 +40,11 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_DEV_SERVER'",
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://azecom2np-keyvault.vault.azure.net/"
@@ -103,6 +108,9 @@
 					},
 					"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_USER_DB_PRODUCTION_SERVER_connectionString')]"
+					},
+					"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
+						"value": "[parameters('LS_V2_PRODUCT_DB_DEV_SERVER_connectionString')]"
 					},
 					"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 						"value": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
