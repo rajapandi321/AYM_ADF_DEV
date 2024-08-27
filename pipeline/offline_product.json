@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT id,\n\tCOALESCE(sku, '') AS sku,\n       COALESCE(Cast(price AS DOUBLE PRECISION),0),\n       created_at,\n       updated_at,\n\tCOALESCE(name_en, '') AS name,\n       1 AS country_id,\n       1 AS order\nFROM   spree_custom_products;"
+						"query": "SELECT id,\n\tCOALESCE(sku, '') AS sku,\n       COALESCE(Cast(price AS DOUBLE PRECISION),0) as price,\n       created_at,\n       updated_at,\n\tCOALESCE(name_en, '') AS name,\n       1 AS country_id,\n       1 AS order\nFROM   spree_custom_products;"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
