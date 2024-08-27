@@ -629,6 +629,41 @@
 						}
 					}
 				]
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "WITH cte AS (\r\n    SELECT st.product_id, st.taxon_id AS temp_taxon_id\r\n    FROM product_taxon st\r\n)\r\nUPDATE product p\r\nSET temp_taxon_id = cte.temp_taxon_id\r\nFROM cte\r\nWHERE p.id = cte.product_id;\r\nSELECT 'Updating Temp Taxon ID' AS Message;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "product"
+						}
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
 		"folder": {
