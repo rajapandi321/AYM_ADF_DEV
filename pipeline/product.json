@@ -777,7 +777,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "alter table product drop column temp_taxon_id;\r\nalter table product drop column temp_supplier_code;\r\nSELECT 'Remove unwanted Columns' as Removed;",
+						"query": "alter table product drop column temp_taxon_id;\r\nalter table product drop column temp_supplier_code;\r\nalter table brand drop column temp_taxon_id;\r\nSELECT 'Remove unwanted Columns' as Removed;",
 						"partitionOption": "None"
 					},
 					"dataset": {
