@@ -710,7 +710,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "update product p \nset brand_id = (\n\tselect b.id as brand_id \n\tfrom brand b\n\tjoin product_taxon pt on pt.product_id = p.id and pt.taxon_id = b.temp_taxon_id\t\n);\nSELECT 'Update Supplier_ID and Brand_ID' as Update;",
+						"query": "With cte AS\n  (select id, name as supplier_code \n  from supplier\n)\nUPDATE product p\nSET supplier_id = cte.id\nFROM cte\nWHERE p.temp_supplier_code = cte.supplier_code;\nSELECT 'Update Supplier ID' as ID;",
 						"partitionOption": "None"
 					},
 					"dataset": {
