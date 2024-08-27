@@ -1,0 +1,146 @@
+{
+	"name": "option_type",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "select sot.id, \n\tsott1.name as name_en,\n\tcoalesce(sott2.name,'') as name_ar,\n\tcoalesce(sott1.presentation,'') as presentation_en,\n\tcoalesce(sott2.presentation,'') as presentation_ar,\n    sot.created_at,\n    sot.updated_at\n\t\nfrom spree_option_types sot\nleft join spree_option_type_translations sott1 on sot.id = sott1.spree_option_type_id\nand sott1.locale='en'\nleft join spree_option_type_translations sott2 on sot.id = sott2.spree_option_type_id\nand sott2.locale='ar';"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "name_en",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "name_en",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "name_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "name_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "presentation_en",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "presentation_en",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "presentation_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "presentation_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								},
+								"sink": {
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								},
+								"sink": {
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "option_type"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Product DB"
+		},
+		"annotations": []
+	}
+}
