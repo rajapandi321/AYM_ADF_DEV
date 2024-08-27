@@ -1,0 +1,61 @@
+{
+	"name": "user",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT\r\n  u.id,\r\n  CASE\r\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n    ELSE FALSE\r\n  END AS is_deleted,\r\n  u.created_at,\r\n  u.updated_at,\r\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\r\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\r\n  u.email,\r\n  'others' as gender,\r\n  COALESCE(CONCAT('+', u.mobile_number_country_code),'') AS country_code,\r\n  LEFT(COALESCE(CASE\r\n    WHEN u.mobile_phone_number LIKE CONCAT(\r\n      '+', u.mobile_number_country_code,\r\n      '%'\r\n      ) THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\r\n      )\r\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\r\n      )\r\n    ELSE COALESCE(u.mobile_phone_number, '')\r\n  END, ''), 16) AS mobile_number,\r\n  u.dob,\r\n  COALESCE(u.referral_code, '') AS referral_code,\r\n  CASE WHEN u.locale ='en' THEN 1\r\n\tELSE 2\r\n   END AS language_id,\r\n  a.latitude,\r\n  a.longitude,\r\n--   when country_id is '0' updated as '1' \r\n  CASE\r\n    WHEN a.country_id='0' THEN '1'\r\n    ELSE a.country_id\r\n  END AS country_id,\r\n  True as receive_marketing_promotions,\r\n  case \r\n  \twhen sua.provider = 'google_oauth2' then 'google'\r\n\telse sua.provider end as login_type,\r\n\tsua.uid as social_id,\r\n\t0 as balance,\r\n\tu.blacklisted_at,\r\n\tu.blacklisted_reason\r\n\r\nFROM spree_users u\r\nLEFT JOIN spree_user_addresses ua ON u.id = ua.user_id AND ua.default = TRUE\r\nLEFT JOIN spree_addresses a ON ua.address_id = a.id\r\nleft join spree_user_authentications sua on u.id = sua.user_id \r\nORDER BY u.id ASC;"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings",
+							"copyBehavior": "PreserveHierarchy"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "User DB"
+		},
+		"annotations": []
+	}
+}
