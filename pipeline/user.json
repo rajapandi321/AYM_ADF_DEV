@@ -169,13 +169,13 @@
 							{
 								"source": {
 									"name": "dob",
-									"type": "DateTime",
-									"physicalType": "date"
+									"type": "String",
+									"physicalType": "text"
 								},
 								"sink": {
 									"name": "dob",
-									"type": "DateTime",
-									"physicalType": "INT_96"
+									"type": "String",
+									"physicalType": "UTF8"
 								}
 							},
 							{
@@ -200,6 +200,18 @@
 									"name": "language_id",
 									"type": "Int32",
 									"physicalType": "INT_32"
+								}
+							},
+							{
+								"source": {
+									"name": "city",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "city",
+									"type": "String",
+									"physicalType": "UTF8"
 								}
 							},
 							{
