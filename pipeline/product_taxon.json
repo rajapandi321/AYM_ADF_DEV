@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT DISTINCT product_id,\n       taxon_id\nFROM   spree_products_taxons\nOrder by updated_at Desc;"
+						"query": "SELECT DISTINCT product_id,\n       taxon_id\nFROM   spree_products_taxons;"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
