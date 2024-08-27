@@ -9,7 +9,7 @@
 				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
-						"activity": "Lookup3",
+						"activity": "addsuppliercodecolumn",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -717,7 +717,7 @@
 				}
 			},
 			{
-				"name": "Lookup3",
+				"name": "addsuppliercodecolumn",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
