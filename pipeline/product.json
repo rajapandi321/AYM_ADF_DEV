@@ -666,6 +666,41 @@
 					},
 					"firstRowOnly": false
 				}
+			},
+			{
+				"name": "Lookup2",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "With cte AS\n  (select id, name as supplier_code \n  from supplier\n)\nUPDATE product p\nSET supplier_id = cte.id\nFROM cte\nWHERE p.temp_supplier_code = cte.supplier_code;\nSELECT 'Update Supplier_Code' as UpdateCode;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "product"
+						}
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
 		"folder": {
