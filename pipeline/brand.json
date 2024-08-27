@@ -23,6 +23,7 @@
 						"type": "AzurePostgreSQLSink",
 						"writeBatchSize": 1000000,
 						"writeBatchTimeout": "00:30:00",
+						"preCopyScript": "alter table brand add column temp_taxon_id int;",
 						"writeMethod": "CopyCommand"
 					},
 					"enableStaging": false,
