@@ -765,6 +765,867 @@
 				"annotations": []
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bundle_product')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n  master_product_id, \n  child_product_id, \n  quantity \nFROM \n  spree_bundle_products;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "master_product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "master_product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "child_product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "child_product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "quantity",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "quantity",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "bundle_products"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cuisine')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n  id, \n  name_en, \n  name_ar, \n  created_at, \n  updated_at, \n  sort_order as position \nFROM \n  spree_kitchen_cuisines\nOrder by id ASC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "position",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "position",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "cuisine"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ingredient')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select \n  id, \n  name_en, \n  name_ar, \n  taxon_id, \n  kitchen_recipe_id as recipe_id, \n  quantity, \n  COALESCE(Cast(measurement AS CHARACTER varying),'') AS measurement,\n  created_at, \n  updated_at \nfrom \n  spree_kitchen_ingredients\norder by id ASC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "recipe_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "recipe_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "taxon_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "taxon_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "quantity",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "quantity",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "measurement",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "measurement",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "ingredient"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ingredient_product')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select \n  -- id,\n  Cast(kitchen_ingredient_id AS integer) AS ingredient_id,\n  Cast(recommended_product_id AS integer) AS product_id\nfrom spree_ingredient_products\n-- order by id asc;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "ingredient_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "ingredient_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "ingredient_product"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/nutritional_facts')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "WITH json_to_extract AS\n(\n       SELECT id,\n              quantity_en AS quantity,\n              product_id,\n              created_at,\n              updated_at,\n              quantity_ar,\n              nutrients :: jsonb AS json_data\n       FROM   spree_nutritional_facts )\nSELECT    id,\n          quantity,\n          quantity_ar,\n          product_id,\n          calories,\n          total_fat,\n          saturated_fat,\n          trans_fat,\n          cholesterol,\n          total_carbohydrates,\n          sugar,\n          dietary_fiber,\n          protein,\n          salt,\n          sodium,\n          iron,\n          calcium,\n          vitamin_a,\n          vitamin_c,\n          vitamin_d,\n          ph,\n          created_at,\n          updated_at\nFROM      json_to_extract\nLEFT JOIN lateral\n          (\n                 Select ( Regexp_matches( json_data :: text, 'calories:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]            AS calories,\n                        ( regexp_matches( json_data :: text, 'total_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS total_fat,\n                        ( regexp_matches( json_data :: text, 'saturated_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]       AS saturated_fat,\n                        ( regexp_matches( json_data :: text, 'trans_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS trans_fat,\n                        ( regexp_matches( json_data :: text, 'cholesterol:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]         AS cholesterol,\n                        ( regexp_matches( json_data :: text, 'total_carbohydrates:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1] AS total_carbohydrates,\n                        ( regexp_matches( json_data :: text, 'sugar:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]               AS sugar,\n                        ( regexp_matches( json_data :: text, 'fiber:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]               AS dietary_fiber,\n                        ( regexp_matches( json_data :: text, 'protein:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]             AS protein,\n                        ( regexp_matches( json_data :: text, 'salt:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                AS salt,\n                        ( regexp_matches( json_data :: text, 'sodium:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]              AS sodium,\n                        ( regexp_matches( json_data :: text, 'iron:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                AS iron,\n                        ( regexp_matches( json_data :: text, 'calcium:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]             AS calcium,\n                        ( regexp_matches( json_data :: text, 'vitamin_a:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_a,\n                        ( regexp_matches( json_data :: text, 'vitamin_c:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_c,\n                        ( regexp_matches( json_data :: text, 'vitamin_d:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_d,\n                        ( regexp_matches( json_data :: text, 'ph:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                  AS ph ) AS nutrient_values\nON        true\nORDER BY  id ASC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "quantity",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "quantity",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "quantity_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "quantity_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "calories",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "calories",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "total_fat",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "total_fat",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "saturated_fat",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "saturated_fat",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "trans_fat",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "trans_fat",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "cholesterol",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "cholesterol",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "total_carbohydrates",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "total_carbohydrates",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "sugar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "sugar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "dietary_fiber",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "dietary_fiber",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "protein",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "protein",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "salt",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "salt",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "sodium",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "sodium",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "iron",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "iron",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "calcium",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "calcium",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "vitamin_a",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "vitamin_a",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "vitamin_c",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "vitamin_c",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "vitamin_d",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "vitamin_d",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "ph",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "ph",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "nutritional_facts"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
 		}
 	]
 }
