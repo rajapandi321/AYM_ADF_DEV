@@ -66,13 +66,6 @@
 								}
 							},
 							{
-								"sink": {
-									"name": "description",
-									"type": "String",
-									"physicalType": "character varying"
-								}
-							},
-							{
 								"source": {
 									"name": "created_at",
 									"type": "DateTime",
@@ -92,13 +85,6 @@
 								},
 								"sink": {
 									"name": "updated_at",
-									"type": "DateTime",
-									"physicalType": "timestamp without time zone"
-								}
-							},
-							{
-								"sink": {
-									"name": "deleted_at",
 									"type": "DateTime",
 									"physicalType": "timestamp without time zone"
 								}
