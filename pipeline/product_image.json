@@ -1,0 +1,134 @@
+{
+	"name": "product_image",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT id,\n       viewable_id          AS product_id,\n       attachment_file_name AS file_name,\n       created_at,\n       updated_at,\n       1 as order\nFROM   spree_assets\nWHERE  viewable_type = 'Spree::Variant' \nOrder by id ASC;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								},
+								"sink": {
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								},
+								"sink": {
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "product_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "product_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "file_name",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "file_name",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "order",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "order",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "product_image"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Product DB"
+		},
+		"annotations": []
+	}
+}
