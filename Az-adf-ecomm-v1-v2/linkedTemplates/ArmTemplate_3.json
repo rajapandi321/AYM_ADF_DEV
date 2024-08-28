@@ -2551,51 +2551,740 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/brand_and_product_table')]",
+			"name": "[concat(parameters('factoryName'), '/promotion')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "brand_table",
-						"type": "ExecutePipeline",
+						"name": "Copy data1",
+						"type": "Copy",
 						"dependsOn": [],
 						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
 							"secureInput": false
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"pipeline": {
-								"referenceName": "brand",
-								"type": "PipelineReference"
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "WITH Cte AS (\n  SELECT DISTINCT\n    sp.id,\n    COALESCE(MAX(CASE WHEN spt.locale = 'en' THEN spt.name END), '') AS name_en,\n    MAX(CASE WHEN spt.locale = 'en' THEN spt.description END) AS description_en,\n    COALESCE(MAX(CASE WHEN spt.locale = 'ar' THEN spt.name END), '') AS name_ar,\n    MAX(CASE WHEN spt.locale = 'ar' THEN spt.description END) AS description_ar,\n    UPPER(REGEXP_REPLACE(TRANSLATE(MAX(CASE WHEN spt.locale = 'en' THEN spt.name END), ' ', '_'), '[^a-zA-Z0-9_]', '', 'g')) AS code,\n    sp.expires_at,\n    sp.starts_at,\n    COALESCE(sp.usage_limit, 0) AS usage_limit,\n    sp.match_policy,\n    sp.created_at,\n    sp.updated_at,\n    sp.per_code_usage_limit,\n    sp.apply_automatically,\n    sp.deleted_at,\n    TRUE AS is_visible\n  FROM spree_promotions AS sp\n  LEFT JOIN spree_promotion_translations AS spt ON spt.spree_promotion_id = sp.id\n  WHERE spt.name IS NOT NULL\n  GROUP BY sp.id\n  ORDER BY sp.id ASC\n)\nSELECT\n  id,\n  name_en,\n  description_en,\n  name_ar,\n  description_ar,\n  code,\n  expires_at,\n  starts_at,\n  usage_limit,\n  match_policy,\n  created_at,\n  updated_at,\n  per_code_usage_limit,\n  apply_automatically,\n  deleted_at,\n  is_visible\nFROM (\n  SELECT\n    id,\n    name_en,\n    description_en,\n    name_ar,\n    description_ar,\n    code,\n    expires_at,\n    starts_at,\n    usage_limit,\n    match_policy,\n    created_at,\n    updated_at,\n    per_code_usage_limit,\n    apply_automatically,\n    deleted_at,\n    is_visible,\n    ROW_NUMBER() OVER (PARTITION BY name_en ORDER BY id) AS rn\n  FROM Cte\n) AS temp\nWHERE rn = 1\nORDER BY name_en;"
 							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
-					},
-					{
-						"name": "product_table",
-						"type": "ExecutePipeline",
-						"dependsOn": [
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "description_en",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "description_en",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "description_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "description_ar",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "per_code_usage_limit",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "per_code_usage_limit",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "usage_limit",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "usage_limit",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "starts_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "starts_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "expires_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "expires_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "apply_automatically",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "apply_automatically",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "deleted_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "deleted_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "match_policy",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "match_policy",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
 							{
-								"activity": "brand_table",
-								"dependencyConditions": [
-									"Succeeded"
-								]
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
 							}
 						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "promotion"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/taxon')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
 						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
 							"secureInput": false
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"pipeline": {
-								"referenceName": "product",
-								"type": "PipelineReference"
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT\n    st.id,\n    st.parent_id AS parent_id,\n    st.position,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.name END) as name,\n    COALESCE(MAX(CASE WHEN stt.locale = 'en' THEN stt.permalink END), '') as permalink,\n    st.taxonomy_id,\n    st.created_at,\n    st.updated_at,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_title END) as meta_title,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_description END) as meta_description,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_keywords END) as meta_keywords,\n    st.visible,\n    Date(st.start_time) AS start_date,\n    Cast( Substring(To_char(st.start_time, 'HH24:MI:SS'), 1, 8)  AS text) AS start_time,\n    Date(st.end_time) AS end_date,\n    Cast(Substring(To_char(st.end_time, 'HH24:MI:SS'), 1, 8) AS text) AS end_time,\n    st.product_text_tag_en,\n    st.product_text_tag_ar,\n    COALESCE(st.tag_to_show, '') AS tag_to_show,\n    st.visible_only_for_subscriber,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.name END) as name_ar,\n    COALESCE(MAX(CASE WHEN stt.locale = 'ar' THEN stt.permalink END), '') as permalink_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_title END) as meta_title_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_description END) as meta_description_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_keywords END) as meta_keywords_ar,\n    '' as pretty_name,\n    '' as pretty_name_ar,\n    'false' as featured\nFROM\n    spree_taxons st\nLEFT JOIN spree_taxon_translations stt on stt.spree_taxon_id = st.id\nGROUP BY\n    st.id;"
 							},
-							"waitOnCompletion": true,
-							"parameters": {}
-						}
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "position",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "position",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "parent_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "parent_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "taxonomy_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "taxonomy_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "permalink",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "permalink",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "start_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "start_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "end_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "end_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										}
+									},
+									{
+										"source": {
+											"name": "start_time",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "start_time",
+											"type": "TimeSpan",
+											"physicalType": "time without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "end_time",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "end_time",
+											"type": "TimeSpan",
+											"physicalType": "time without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "product_text_tag_en",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "product_text_tag_en",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "product_text_tag_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "product_text_tag_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "tag_to_show",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "tag_to_show",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "visible_only_for_subscriber",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "visible_only_for_subscriber",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "meta_title",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "meta_title",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "meta_description",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "meta_description",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "meta_keywords",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "meta_keywords",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "permalink_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "permalink_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "meta_title_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "meta_title_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "meta_description_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "meta_description_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "meta_keywords_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "meta_keywords_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "featured",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "featured",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "pretty_name_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "pretty_name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "pretty_name",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "pretty_name",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "taxon"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/taxon_country')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \r\n    a.taxon_id,\r\n    CASE \r\n        WHEN au.name = 'Danube' THEN (SELECT id FROM spree_countries WHERE name = 'Saudi Arabia')\r\n        ELSE aua.id \r\n    END AS country_id\r\nFROM spree_tenants_taxons a\r\nLEFT JOIN spree_tenants au ON a.tenant_id = au.id\r\nLEFT JOIN spree_countries aua ON aua.name = au.name;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "taxon_id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "taxon_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "taxon_country"
+								}
+							}
+						]
 					}
 				],
 				"policy": {
