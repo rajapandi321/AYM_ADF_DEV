@@ -1,0 +1,398 @@
+{
+	"name": "taxon",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT\n    st.id,\n    st.parent_id AS parent_id,\n    st.position,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.name END) as name,\n    COALESCE(MAX(CASE WHEN stt.locale = 'en' THEN stt.permalink END), '') as permalink,\n    st.taxonomy_id,\n    st.created_at,\n    st.updated_at,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_title END) as meta_title,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_description END) as meta_description,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_keywords END) as meta_keywords,\n    st.visible,\n    Date(st.start_time) AS start_date,\n    Cast( Substring(To_char(st.start_time, 'HH24:MI:SS'), 1, 8)  AS text) AS start_time,\n    Date(st.end_time) AS end_date,\n    Cast(Substring(To_char(st.end_time, 'HH24:MI:SS'), 1, 8) AS text) AS end_time,\n    st.product_text_tag_en,\n    st.product_text_tag_ar,\n    COALESCE(st.tag_to_show, '') AS tag_to_show,\n    st.visible_only_for_subscriber,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.name END) as name_ar,\n    COALESCE(MAX(CASE WHEN stt.locale = 'ar' THEN stt.permalink END), '') as permalink_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_title END) as meta_title_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_description END) as meta_description_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_keywords END) as meta_keywords_ar,\n    '' as pretty_name,\n    '' as pretty_name_ar,\n    'false' as featured\nFROM\n    spree_taxons st\nLEFT JOIN spree_taxon_translations stt on stt.spree_taxon_id = st.id\nGROUP BY\n    st.id;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "position",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "position",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "parent_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "parent_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "taxonomy_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "taxonomy_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								},
+								"sink": {
+									"name": "created_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								},
+								"sink": {
+									"name": "updated_at",
+									"type": "DateTime",
+									"physicalType": "timestamp without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "visible",
+									"type": "Boolean",
+									"physicalType": "boolean"
+								},
+								"sink": {
+									"name": "visible",
+									"type": "Boolean",
+									"physicalType": "boolean"
+								}
+							},
+							{
+								"source": {
+									"name": "permalink",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "permalink",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "start_date",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "start_date",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "end_date",
+									"type": "DateTime",
+									"physicalType": "date"
+								},
+								"sink": {
+									"name": "end_date",
+									"type": "DateTime",
+									"physicalType": "date"
+								}
+							},
+							{
+								"source": {
+									"name": "start_time",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "start_time",
+									"type": "TimeSpan",
+									"physicalType": "time without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "end_time",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "end_time",
+									"type": "TimeSpan",
+									"physicalType": "time without time zone"
+								}
+							},
+							{
+								"source": {
+									"name": "product_text_tag_en",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "product_text_tag_en",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "product_text_tag_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "product_text_tag_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "tag_to_show",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "tag_to_show",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "visible_only_for_subscriber",
+									"type": "Boolean",
+									"physicalType": "boolean"
+								},
+								"sink": {
+									"name": "visible_only_for_subscriber",
+									"type": "Boolean",
+									"physicalType": "boolean"
+								}
+							},
+							{
+								"source": {
+									"name": "meta_title",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "meta_title",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "meta_description",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "meta_description",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "meta_keywords",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "meta_keywords",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "name_ar",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "name_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "permalink_ar",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "permalink_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "meta_title_ar",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "meta_title_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "meta_description_ar",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "meta_description_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "meta_keywords_ar",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "meta_keywords_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "featured",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "featured",
+									"type": "Boolean",
+									"physicalType": "boolean"
+								}
+							},
+							{
+								"source": {
+									"name": "pretty_name_ar",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "pretty_name_ar",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							},
+							{
+								"source": {
+									"name": "pretty_name",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "pretty_name",
+									"type": "String",
+									"physicalType": "character varying"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "taxon"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Product DB"
+		},
+		"annotations": []
+	}
+}
