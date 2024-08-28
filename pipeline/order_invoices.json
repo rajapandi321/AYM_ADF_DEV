@@ -1,0 +1,60 @@
+{
+	"name": "order_invoices",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT\n    id,\n    order_id,\n    type,\n    public_id,\n    is_qr_generated,\n    is_pdf_generated,\n    meta,\n    created_at,\n    updated_at,\n    qr_file_name,\n    qr_content_type,\n    qr_file_size,\n    qr_updated_at,\n    pdf_file_name,\n    pdf_content_type,\n    pdf_file_size,\n    pdf_updated_at,\n    qr_data,\n    job_id,\n    zatca_status,\n    zatca_issued_date,\n    zatca_signed_xml_url,\n    zatca_uuid,\n    zatca_invoice_hash,\n    zatca_response\nFROM\n    public.spree_invoices;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order_invoices"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Order DB"
+		},
+		"annotations": []
+	}
+}
