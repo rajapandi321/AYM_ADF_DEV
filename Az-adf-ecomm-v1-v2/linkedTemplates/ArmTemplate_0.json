@@ -30,6 +30,11 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=order-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_DEV_SERVER'",
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+		},
 		"LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_PRODUCTION_SERVER'",
@@ -39,11 +44,6 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
-		},
-		"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
-			"type": "secureString",
-			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_DEV_SERVER'",
-			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
 		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"type": "string",
@@ -226,6 +226,29 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCT_DB_DEV_SERVER')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_PRODUCT_DB_DEV_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "db-password-dev"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCT_DB_PRODUCTION_SERVER')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -264,29 +287,6 @@
 							"type": "LinkedServiceReference"
 						},
 						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/LS_V2_PRODUCT_DB_DEV_SERVER')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"type": "AzurePostgreSql",
-				"typeProperties": {
-					"connectionString": "[parameters('LS_V2_PRODUCT_DB_DEV_SERVER_connectionString')]",
-					"password": {
-						"type": "AzureKeyVaultSecret",
-						"store": {
-							"referenceName": "LS_Danube_Key_Vault",
-							"type": "LinkedServiceReference"
-						},
-						"secretName": "db-password-dev"
 					}
 				}
 			},
@@ -489,6 +489,38 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_V2_PRODUCT_DB_DEV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_V2_PRODUCT_DB_DEV_SERVER",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "V2 Datasets DEV"
+				},
+				"annotations": [],
+				"type": "AzurePostgreSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "public",
+					"table": {
+						"value": "@dataset().table_name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCT_DB_DEV_SERVER')]"
 			]
 		},
 		{
@@ -1012,178 +1044,6 @@
 						"     batchSize: 100000,",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/user')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User DB"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "city"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "join1"
-						},
-						{
-							"name": "select1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          is_deleted as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          first_name as string,",
-						"          last_name as string,",
-						"          email as string,",
-						"          gender as string,",
-						"          country_code as string,",
-						"          mobile_number as string,",
-						"          dob as string,",
-						"          referral_code as string,",
-						"          language_id as integer,",
-						"          city as string,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          country_id as integer,",
-						"          receive_marketing_promotions as boolean,",
-						"          login_type as string,",
-						"          social_id as string,",
-						"          balance as integer,",
-						"          blacklisted_at as timestamp,",
-						"          blacklisted_reason as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source(output(",
-						"          id as integer,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          name as string,",
-						"          country_id as integer,",
-						"          abbreviation as string,",
-						"          city_image_url as string,",
-						"          is_visible as boolean,",
-						"          deleted_at as timestamp,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          translation_id as string,",
-						"          state_id as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'city',",
-						"     schemaName: 'public',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
-						"source1, city join(city == name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
-						"          id = source1@id,",
-						"          is_deleted,",
-						"          created_at = source1@created_at,",
-						"          updated_at = source1@updated_at,",
-						"          first_name,",
-						"          last_name,",
-						"          email,",
-						"          gender,",
-						"          country_code,",
-						"          mobile_number,",
-						"          dob,",
-						"          referral_code,",
-						"          language_id,",
-						"          latitude = source1@latitude,",
-						"          longitude = source1@longitude,",
-						"          country_id = source1@country_id,",
-						"          receive_marketing_promotions,",
-						"          login_type,",
-						"          social_id,",
-						"          balance,",
-						"          blacklisted_at,",
-						"          blacklisted_reason,",
-						"          city_id = city@id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'user',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: true,",
-						"     updateable: false,",
-						"     upsertable: false,",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          is_deleted,",
-						"          created_at,",
-						"          updated_at,",
-						"          first_name,",
-						"          last_name,",
-						"          email,",
-						"          gender,",
-						"          country_code,",
-						"          mobile_number,",
-						"          dob,",
-						"          referral_code,",
-						"          language_id,",
-						"          latitude,",
-						"          longitude,",
-						"          country_id,",
-						"          receive_marketing_promotions,",
-						"          login_type,",
-						"          social_id,",
-						"          balance,",
-						"          blacklisted_at,",
-						"          blacklisted_reason,",
-						"          city_id",
-						"     )) ~> sink1"
 					]
 				}
 			},
