@@ -4184,7 +4184,7 @@
 						"type": "Copy",
 						"dependsOn": [],
 						"policy": {
-							"timeout": "0.12:00:00",
+							"timeout": "1.12:00:00",
 							"retry": 0,
 							"retryIntervalInSeconds": 30,
 							"secureOutput": false,
@@ -4194,211 +4194,21 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH delivery_instructions AS (\n    SELECT \n        sli.line_item_id,\n        CONCAT('Preferred Cut - ', COALESCE(spc.name, ''), '::', STRING_AGG(CONCAT(' ', COALESCE(scp.name_en, ''), ' ', round(sli.quantity/1000.0,2), ' ', 'kg'), ', '), STRING_AGG(CONCAT(' ',COALESCE(scp.name_ar, ''), ' ', round(sli.quantity/1000.0,2), ' ', 'kg'), ', ')\n        ) AS delivery_instruction\n    FROM spree_line_item_cut_patterns sli\n    LEFT JOIN spree_cut_patterns scp ON scp.id = sli.cut_pattern_id \n    LEFT JOIN spree_preferred_cuts spc ON spc.id = scp.preferred_cut_id\n    GROUP BY sli.line_item_id,spc.name\n    ORDER BY sli.line_item_id\n)\n\nSELECT \n    a.id, \n    a.variant_id AS product_variant_id,\n    COALESCE(siu.quantity_count, 0) as quantity,\n    a.price,\n    a.created_at,\n    a.updated_at,\n    CASE \n        WHEN a.on_sale=false THEN a.price\n        ELSE '0.0'\n    END as action_price,\n    CASE \n        WHEN a.on_sale=true THEN a.price\n        ELSE '0'\n    END as sale_price,\n    b.product_id,\n    di.delivery_instruction,\n    CASE\n        WHEN d.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n        WHEN d.replace_product::varchar = 'false' THEN 'cancel'\n        ELSE NULL\n    END AS replacement_pref,\n    e.quantity AS picked_quantity,\n    null as picker_id,\n    COALESCE(c.shipment_id, 0) as order_shipment_id,\n    1 AS category_id, -- default value = 1 (grocery id from category table)\n    '' as status\nFROM spree_line_items a \nLEFT JOIN spree_variants b ON b.id = a.variant_id\nLEFT JOIN (SELECT DISTINCT ON (line_item_id) * FROM spree_inventory_units) c ON c.line_item_id = a.id\nLEFT JOIN (SELECT line_item_id, state , COUNT(id) as quantity_count\n  FROM spree_inventory_units GROUP BY line_item_id, state) siu ON siu.line_item_id = a.id AND siu.state != 'canceled'\nLEFT JOIN spree_orders d ON d.id = c.order_id\nLEFT JOIN spree_picked_items e ON e.pickable_id = a.id\nLEFT JOIN delivery_instructions di ON di.line_item_id = a.id\nORDER BY a.id DESC;"
+								"query": "SELECT \n    distinct a.id,\n    a.item_total,\n    a.total,\n    CASE\n        WHEN a.state='delivery' THEN 'delivered'\n        WHEN a.state='picking_and_staging_in_progress' THEN 'pending'\n        WHEN a.state='payment' THEN 'pending'\n        WHEN a.state='complete' THEN 'completed'\n        WHEN a.state='confirm' THEN 'pending'\n--         WHEN a.state='cart' THEN 'pending'\n        WHEN a.state='canceled' THEN 'customer_cancelled'\n    END AS status,\n    a.user_id,\n    a.completed_at,\n    a.bill_address_id,\n    a.ship_address_id,\n    a.payment_total,\n    a.created_at,\n    a.updated_at,\n    a.currency,\n    a.item_count,\n    c.cancel_reason,\n    a.canceled_at as cancelled_at,\n    a.canceler_id as cancelled_by,\n\tCASE WHEN a.delivery_method='home_delivery' THEN 1\n\tWHEN a.delivery_method='store_pick_up' THEN 2\n\tELSE NULL END as delivery_option_id,\n    COALESCE(e.country_id,'1') as country_id,\n    sp_max.payment_method_id as payment_option_id,\n\te.city,\n    1 as language_id\nFROM spree_orders a\nLEFT JOIN spree_shipping_methods b ON b.name = a.delivery_method\nLEFT JOIN spree_fulfilments c ON c.order_id = a.id\nLEFT JOIN spree_user_addresses d ON d.user_id = a.user_id AND d.default = 'true'\nLEFT JOIN spree_addresses e ON e.id = d.address_id \t\t\t\t\t\t\t\t\nLEFT JOIN LATERAL (\n    SELECT *\n    FROM spree_payments sp\n    LEFT JOIN spree_payment_methods spm ON spm.id = sp.payment_method_id\n    WHERE sp.order_id = a.id\n\t AND (\n\t\t (SELECT COUNT(*) FROM spree_payments WHERE order_id = a.id) <= 1 OR\n\t\tspm.type NOT IN ('Spree::Gateway::LoyaltyPoint', 'Spree::PaymentMethod::StoreCredit')\n\t )\n    ORDER BY sp.created_at DESC \n    LIMIT 1\n) sp_max ON true\nwhere a.state != 'cart'\norder by a.id;"
 							},
 							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "FlattenHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
 							},
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "item_total",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										},
-										"sink": {
-											"name": "item_total",
-											"type": "Double",
-											"physicalType": "double precision"
-										}
-									},
-									{
-										"source": {
-											"name": "total",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										},
-										"sink": {
-											"name": "total",
-											"type": "Double",
-											"physicalType": "double precision"
-										}
-									},
-									{
-										"source": {
-											"name": "status",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "status",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "completed_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "completed_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "user_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "user_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "payment_total",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										},
-										"sink": {
-											"name": "payment_total",
-											"type": "Double",
-											"physicalType": "double precision"
-										}
-									},
-									{
-										"source": {
-											"name": "currency",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "currency",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "item_count",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "item_count",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "delivery_option_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "delivery_option_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "payment_option_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "payment_option_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "language_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "language_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "cancelled_by",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "cancelled_by",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "cancelled_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "cancelled_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									}
-								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -4415,13 +4225,83 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"referenceName": "DS_Intermiadate_Result",
 								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "order"
-								}
+								"parameters": {}
 							}
 						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "order db",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "order",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"city": {},
+									"ordercancellationreason": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
 					}
 				],
 				"policy": {
@@ -4434,7 +4314,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/dataflows/order')]"
 			]
 		},
 		{
@@ -11445,6 +11326,219 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/order')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "city"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ordercancellationreason"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          item_total as decimal(38,18),",
+						"          total as decimal(38,18),",
+						"          status as string,",
+						"          user_id as integer,",
+						"          completed_at as timestamp,",
+						"          bill_address_id as integer,",
+						"          ship_address_id as integer,",
+						"          payment_total as decimal(38,18),",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          currency as string,",
+						"          item_count as integer,",
+						"          cancel_reason as string,",
+						"          cancelled_at as timestamp,",
+						"          cancelled_by as integer,",
+						"          delivery_option_id as integer,",
+						"          country_id as integer,",
+						"          payment_option_id as integer,",
+						"          city as string,",
+						"          language_id as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source(output(",
+						"          id as integer,",
+						"          name as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'query',",
+						"     query: 'select id, name from city',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
+						"source(output(",
+						"          id as integer,",
+						"          reason_en as string,",
+						"          reason_ar as string,",
+						"          visible as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'query',",
+						"     query: 'select * from order_cancellation_reason',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> ordercancellationreason",
+						"source1, city join(lower(city) == name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 select(mapColumn(",
+						"          id = source1@id,",
+						"          item_total,",
+						"          total,",
+						"          status,",
+						"          user_id,",
+						"          completed_at,",
+						"          bill_address_id,",
+						"          ship_address_id,",
+						"          payment_total,",
+						"          created_at,",
+						"          updated_at,",
+						"          currency,",
+						"          item_count,",
+						"          cancelled_at,",
+						"          cancelled_by,",
+						"          delivery_option_id,",
+						"          country_id,",
+						"          payment_option_id,",
+						"          language_id,",
+						"          city_id = city@id,",
+						"          cancel_reason",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1, ordercancellationreason join(cancel_reason == reason_en,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join2",
+						"join2 select(mapColumn(",
+						"          id = select1@id,",
+						"          item_total,",
+						"          total,",
+						"          status,",
+						"          user_id,",
+						"          completed_at,",
+						"          bill_address_id,",
+						"          ship_address_id,",
+						"          payment_total,",
+						"          created_at = select1@created_at,",
+						"          updated_at = select1@updated_at,",
+						"          currency,",
+						"          item_count,",
+						"          cancelled_at,",
+						"          cancelled_by,",
+						"          delivery_option_id,",
+						"          country_id,",
+						"          payment_option_id,",
+						"          language_id,",
+						"          city_id,",
+						"          order_cancellation_id = ordercancellationreason@id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'order',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          item_total,",
+						"          total,",
+						"          status,",
+						"          user_id,",
+						"          completed_at,",
+						"          bill_address_id,",
+						"          ship_address_id,",
+						"          payment_total,",
+						"          created_at,",
+						"          updated_at,",
+						"          currency,",
+						"          item_count,",
+						"          cancelled_at,",
+						"          cancelled_by,",
+						"          delivery_option_id,",
+						"          country_id,",
+						"          payment_option_id,",
+						"          language_id,",
+						"          city_id,",
+						"          order_cancellation_id",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
 			]
 		}
 	]
