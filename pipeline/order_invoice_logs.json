@@ -1,0 +1,60 @@
+{
+	"name": "order_invoice_logs",
+	"properties": {
+		"activities": [
+			{
+				"name": "order_invoice_logs",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT\n    id,\n    zatca_status,\n    zatca_issued_date,\n    zatca_signed_xml_url,\n    zatca_uuid,\n    zatca_invoice_hash,\n    zatca_response,\n    spree_invoice_id,  -- Assuming spree_invoice_id is a reference to the id column\n    created_at,\n    updated_at,\n    invoice_type     -- Assuming invoice_type corresponds to the type column\nFROM\n    public.spree_invoice_logs;"
+					},
+					"sink": {
+						"type": "AzurePostgreSQLSink",
+						"writeBatchSize": 1000000,
+						"writeBatchTimeout": "00:30:00",
+						"writeMethod": "CopyCommand"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order_invoice_logs"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Order DB"
+		},
+		"annotations": []
+	}
+}
