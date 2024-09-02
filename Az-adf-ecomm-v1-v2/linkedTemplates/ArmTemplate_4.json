@@ -13,6 +13,417 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_option')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT\n  id AS supermarket_id, \n  2 AS delivery_option_id\nFROM danube_supermarkets\nWHERE payment_options::text LIKE '%store_pick_up%'\n\nUNION\n\nSELECT\n  id,\n  1 AS delivery_option_id\nFROM danube_supermarkets\nWHERE payment_options::text LIKE '%home_delivery%';"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supermarket_delivery_option"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_region')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT\n    supermarket_id,\n    2 AS delivery_type_id,\n    (\n        SELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(coverage)::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_X(ST_AsText(center)) AS center_longitude,\n    ST_Y(ST_AsText(center)) AS center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM\n    danube_express_supermarkets;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "json"
+										},
+										"sink": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color_opacity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "fill_color_opacity",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supermarket_delivery_region"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy data2",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n        SELECT \n            json_agg(coordinate) \n        FROM (\n            SELECT \n                json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "delivery_type_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "json"
+										},
+										"sink": {
+											"name": "delivery_region",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "center_longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "fill_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "fill_color_opacity",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "fill_color_opacity",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "border_color",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "border_width",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supermarket_delivery_region"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_type')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",

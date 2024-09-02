@@ -13,6 +13,267 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/order_shipment')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "ordershipment"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "deliverytype"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "deliverycapacity"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "timeslot"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "selectdeliverytype"
+						},
+						{
+							"name": "selectdeliverycapacity"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "selecttimeslots"
+						},
+						{
+							"name": "join3"
+						},
+						{
+							"name": "mergingtimeslots"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          status as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          tax_total as double,",
+						"          total as decimal(38,18),",
+						"          order_type as string,",
+						"          time_slots_schedule_id as integer,",
+						"          supermarket_id as integer,",
+						"          delivery_date as timestamp,",
+						"          delivery_charges as decimal(38,18),",
+						"          is_delivery_on_hold as boolean,",
+						"          processing_start_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> ordershipment",
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'delivery_type',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
+						"source(output(",
+						"          id as integer,",
+						"          supermarket_id as integer,",
+						"          time_slot_id as integer,",
+						"          capacity as integer,",
+						"          is_enabled as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'delivery_capacity',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
+						"source(output(",
+						"          id as integer,",
+						"          start_time as string,",
+						"          end_time as string,",
+						"          country_id as integer,",
+						"          delivery_option_id as integer,",
+						"          day_of_week as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          is_enabled as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'time_slot',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
+						"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"deliverytype select(mapColumn(",
+						"          delivery_type_id = id,",
+						"          delivery_type_name = name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
+						"deliverycapacity select(mapColumn(",
+						"          dc_id = id,",
+						"          dc_time_slot_id = time_slot_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdeliverycapacity",
+						"join1, selectdeliverycapacity join(time_slots_schedule_id == dc_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join2",
+						"timeslot select(mapColumn(",
+						"          time_slot_id = id,",
+						"          start_time,",
+						"          end_time",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
+						"join2, selecttimeslots join(dc_time_slot_id == time_slot_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join3",
+						"join3 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
+						"mergingtimeslots select(mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          status,",
+						"          created_at,",
+						"          updated_at,",
+						"          tax_total,",
+						"          total,",
+						"          order_type,",
+						"          time_slots_schedule_id,",
+						"          supermarket_id,",
+						"          delivery_date,",
+						"          delivery_charges,",
+						"          is_delivery_on_hold,",
+						"          processing_start_at,",
+						"          delivery_type_id,",
+						"          time_slot_id = dc_time_slot_id,",
+						"          formatted_time_slot",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          supermarket_id as integer,",
+						"          delivery_type_id as integer,",
+						"          delivery_date as date,",
+						"          delivered_at as timestamp,",
+						"          total as double,",
+						"          tax_total as double,",
+						"          status as string,",
+						"          driver_id as integer,",
+						"          delivery_charges as double,",
+						"          time_slot_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          processing_start_at as timestamp,",
+						"          dispatch_job_id as integer,",
+						"          is_delivery_on_hold as boolean,",
+						"          delivery_order as integer,",
+						"          formatted_time_slot as string,",
+						"          promotion_woa_percentage as double,",
+						"          promotion_woa_max_discount as double,",
+						"          discount_given as double",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'order_shipment',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          status,",
+						"          created_at,",
+						"          updated_at,",
+						"          tax_total,",
+						"          total,",
+						"          supermarket_id,",
+						"          delivery_date,",
+						"          delivery_charges,",
+						"          is_delivery_on_hold,",
+						"          processing_start_at,",
+						"          delivery_type_id,",
+						"          time_slot_id,",
+						"          formatted_time_slot",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/supermarket')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -2526,146 +2787,6 @@
 				},
 				"folder": {
 					"name": "Auth DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/employee')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT u.id,\nsru.role_id,\nu.email,\nu.created_at,\nu.updated_at,\nCASE\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\n    ELSE FALSE\n  END AS is_deleted,\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\n  LEFT(COALESCE(CASE\n    WHEN u.mobile_phone_number LIKE CONCAT(\n      '+', u.mobile_number_country_code,\n      '%'\n      ) THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\n      )\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\n      )\n    ELSE COALESCE(u.mobile_phone_number, '')\n  END, ''), 16) AS mobile_number,\n  u.dob,\n  COALESCE(\n  CONCAT('+', u.mobile_number_country_code),\n  ''\n  ) AS country_code,\n  CASE WHEN sa.country_id='0' THEN '1'\n    ELSE sa.country_id\n  END AS country_id,\n\t'others' as gender,\n\t'admin' as user_type,\n\t'available' as availability,\n  sr.name as role_name,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS active,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS status,\n  sa.city\nfrom spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\nleft join spree_addresses sa on sua.address_id = sa.id\norder by u.id asc;"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings",
-									"copyBehavior": "FlattenHierarchy"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "employee",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"employee": {},
-									"city": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": false,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
 				},
 				"annotations": []
 			},

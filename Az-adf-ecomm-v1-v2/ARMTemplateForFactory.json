@@ -5295,6 +5295,289 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/order_shipment')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "WITH cte AS (\n    SELECT \n        ssh.id,\n        ssh.order_id,\n        CASE \n            WHEN ssh.state = 'shipped' THEN 'delivered'\n            WHEN ssh.state = 'pending' THEN 'pending'\n            WHEN ssh.state = 'ready' THEN 'picked'\n            WHEN ssh.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ssh.created_at,\n        ssh.updated_at,\n        CAST((ssh.additional_tax_total + ssh.included_tax_total) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n        slto.time_slots_schedule_id,\n        so.supermarket_id,\n        sla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n        ROW_NUMBER() OVER (PARTITION BY ssh.id ORDER BY ssh.id) AS rn\n    FROM spree_shipments ssh\n    INNER JOIN spree_orders so ON so.id = ssh.order_id AND so.state != 'cart'\n    LEFT JOIN spree_lift_assignments sla ON sla.order_id = ssh.order_id\n    LEFT JOIN spree_adjustments sa ON sa.order_id = ssh.order_id AND sa.label = 'Express Fee'\n    LEFT JOIN danube_slot_to_orders slto ON slto.order_id = ssh.order_id\n    ORDER BY ssh.id ASC\n)\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slots_schedule_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nWHERE rn = 1;\n"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "FlattenHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "order_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "order_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "status",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "status",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "tax_total",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "tax_total",
+											"type": "Double",
+											"physicalType": "DOUBLE"
+										}
+									},
+									{
+										"source": {
+											"name": "total",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "total",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "order_type",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "order_type",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "time_slots_schedule_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "time_slots_schedule_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "supermarket_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_date",
+											"type": "DateTime",
+											"physicalType": "date"
+										},
+										"sink": {
+											"name": "delivery_date",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_charges",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "delivery_charges",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "is_delivery_on_hold",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_delivery_on_hold",
+											"type": "Boolean",
+											"physicalType": "BOOLEAN"
+										}
+									},
+									{
+										"source": {
+											"name": "processing_start_at",
+											"type": "DateTime",
+											"physicalType": "timestamp with time zone"
+										},
+										"sink": {
+											"name": "processing_start_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "order_shipment",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"ordershipment": {},
+									"deliverytype": {},
+									"deliverycapacity": {},
+									"timeslot": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/dataflows/order_shipment')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/payment_option')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -11222,6 +11505,271 @@
 						"          language_id,",
 						"          city_id,",
 						"          order_cancellation_id",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/order_shipment')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "ordershipment"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "deliverytype"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "deliverycapacity"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "timeslot"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "selectdeliverytype"
+						},
+						{
+							"name": "selectdeliverycapacity"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "selecttimeslots"
+						},
+						{
+							"name": "join3"
+						},
+						{
+							"name": "mergingtimeslots"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          status as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          tax_total as double,",
+						"          total as decimal(38,18),",
+						"          order_type as string,",
+						"          time_slots_schedule_id as integer,",
+						"          supermarket_id as integer,",
+						"          delivery_date as timestamp,",
+						"          delivery_charges as decimal(38,18),",
+						"          is_delivery_on_hold as boolean,",
+						"          processing_start_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> ordershipment",
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'delivery_type',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
+						"source(output(",
+						"          id as integer,",
+						"          supermarket_id as integer,",
+						"          time_slot_id as integer,",
+						"          capacity as integer,",
+						"          is_enabled as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'delivery_capacity',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
+						"source(output(",
+						"          id as integer,",
+						"          start_time as string,",
+						"          end_time as string,",
+						"          country_id as integer,",
+						"          delivery_option_id as integer,",
+						"          day_of_week as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          is_enabled as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'time_slot',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
+						"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"deliverytype select(mapColumn(",
+						"          delivery_type_id = id,",
+						"          delivery_type_name = name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
+						"deliverycapacity select(mapColumn(",
+						"          dc_id = id,",
+						"          dc_time_slot_id = time_slot_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdeliverycapacity",
+						"join1, selectdeliverycapacity join(time_slots_schedule_id == dc_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join2",
+						"timeslot select(mapColumn(",
+						"          time_slot_id = id,",
+						"          start_time,",
+						"          end_time",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
+						"join2, selecttimeslots join(dc_time_slot_id == time_slot_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join3",
+						"join3 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
+						"mergingtimeslots select(mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          status,",
+						"          created_at,",
+						"          updated_at,",
+						"          tax_total,",
+						"          total,",
+						"          order_type,",
+						"          time_slots_schedule_id,",
+						"          supermarket_id,",
+						"          delivery_date,",
+						"          delivery_charges,",
+						"          is_delivery_on_hold,",
+						"          processing_start_at,",
+						"          delivery_type_id,",
+						"          time_slot_id = dc_time_slot_id,",
+						"          formatted_time_slot",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          supermarket_id as integer,",
+						"          delivery_type_id as integer,",
+						"          delivery_date as date,",
+						"          delivered_at as timestamp,",
+						"          total as double,",
+						"          tax_total as double,",
+						"          status as string,",
+						"          driver_id as integer,",
+						"          delivery_charges as double,",
+						"          time_slot_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          processing_start_at as timestamp,",
+						"          dispatch_job_id as integer,",
+						"          is_delivery_on_hold as boolean,",
+						"          delivery_order as integer,",
+						"          formatted_time_slot as string,",
+						"          promotion_woa_percentage as double,",
+						"          promotion_woa_max_discount as double,",
+						"          discount_given as double",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'order_shipment',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          status,",
+						"          created_at,",
+						"          updated_at,",
+						"          tax_total,",
+						"          total,",
+						"          supermarket_id,",
+						"          delivery_date,",
+						"          delivery_charges,",
+						"          is_delivery_on_hold,",
+						"          processing_start_at,",
+						"          delivery_type_id,",
+						"          time_slot_id,",
+						"          formatted_time_slot",
 						"     )) ~> sink1"
 					]
 				}
