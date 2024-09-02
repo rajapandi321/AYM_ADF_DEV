@@ -36,7 +36,15 @@
 					"name": "timeslot"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "join1"
@@ -189,7 +197,61 @@
 				"          formatted_time_slot",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1"
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          order_id as integer,",
+				"          supermarket_id as integer,",
+				"          delivery_type_id as integer,",
+				"          delivery_date as date,",
+				"          delivered_at as timestamp,",
+				"          total as double,",
+				"          tax_total as double,",
+				"          status as string,",
+				"          driver_id as integer,",
+				"          delivery_charges as double,",
+				"          time_slot_id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          processing_start_at as timestamp,",
+				"          dispatch_job_id as integer,",
+				"          is_delivery_on_hold as boolean,",
+				"          delivery_order as integer,",
+				"          formatted_time_slot as string,",
+				"          promotion_woa_percentage as double,",
+				"          promotion_woa_max_discount as double,",
+				"          discount_given as double",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'order_shipment',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          order_id,",
+				"          status,",
+				"          created_at,",
+				"          updated_at,",
+				"          tax_total,",
+				"          total,",
+				"          supermarket_id,",
+				"          delivery_date,",
+				"          delivery_charges,",
+				"          is_delivery_on_hold,",
+				"          processing_start_at,",
+				"          delivery_type_id,",
+				"          time_slot_id,",
+				"          formatted_time_slot",
+				"     )) ~> sink1"
 			]
 		}
 	}
