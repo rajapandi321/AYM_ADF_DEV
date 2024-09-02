@@ -1,0 +1,196 @@
+{
+	"name": "order_shipment",
+	"properties": {
+		"folder": {
+			"name": "Order DB"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "ordershipment"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "deliverytype"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "deliverycapacity"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "timeslot"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "selectdeliverytype"
+				},
+				{
+					"name": "selectdeliverycapacity"
+				},
+				{
+					"name": "join2"
+				},
+				{
+					"name": "selecttimeslots"
+				},
+				{
+					"name": "join3"
+				},
+				{
+					"name": "mergingtimeslots"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          order_id as integer,",
+				"          status as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          tax_total as double,",
+				"          total as decimal(38,18),",
+				"          order_type as string,",
+				"          time_slots_schedule_id as integer,",
+				"          supermarket_id as integer,",
+				"          delivery_date as timestamp,",
+				"          delivery_charges as decimal(38,18),",
+				"          is_delivery_on_hold as boolean,",
+				"          processing_start_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> ordershipment",
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'delivery_type',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
+				"source(output(",
+				"          id as integer,",
+				"          supermarket_id as integer,",
+				"          time_slot_id as integer,",
+				"          capacity as integer,",
+				"          is_enabled as boolean,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'delivery_capacity',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
+				"source(output(",
+				"          id as integer,",
+				"          start_time as string,",
+				"          end_time as string,",
+				"          country_id as integer,",
+				"          delivery_option_id as integer,",
+				"          day_of_week as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          is_enabled as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'time_slot',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
+				"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"deliverytype select(mapColumn(",
+				"          delivery_type_id = id,",
+				"          delivery_type_name = name",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
+				"deliverycapacity select(mapColumn(",
+				"          dc_id = id,",
+				"          dc_time_slot_id = time_slot_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectdeliverycapacity",
+				"join1, selectdeliverycapacity join(time_slots_schedule_id == dc_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join2",
+				"timeslot select(mapColumn(",
+				"          time_slot_id = id,",
+				"          start_time,",
+				"          end_time",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
+				"join2, selecttimeslots join(dc_time_slot_id == time_slot_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join3",
+				"join3 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
+				"mergingtimeslots select(mapColumn(",
+				"          id,",
+				"          order_id,",
+				"          status,",
+				"          created_at,",
+				"          updated_at,",
+				"          tax_total,",
+				"          total,",
+				"          order_type,",
+				"          time_slots_schedule_id,",
+				"          supermarket_id,",
+				"          delivery_date,",
+				"          delivery_charges,",
+				"          is_delivery_on_hold,",
+				"          processing_start_at,",
+				"          delivery_type_id,",
+				"          time_slot_id = dc_time_slot_id,",
+				"          formatted_time_slot",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1"
+			]
+		}
+	}
+}
