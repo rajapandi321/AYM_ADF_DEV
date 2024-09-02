@@ -13,6 +13,143 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/supermarket')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "supermarket"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "city"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          address as string,",
+						"          mobile_number as string,",
+						"          country_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          is_visible as boolean,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          time_slots_lead_time as integer,",
+						"          express_delivery_fee as decimal(38,18),",
+						"          call_mask as boolean,",
+						"          minimum_total_amount_for_free_delivery as decimal(38,18),",
+						"          description as string,",
+						"          state_id as integer,",
+						"          city as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> supermarket",
+						"source(output(",
+						"          id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          name as string,",
+						"          country_id as integer,",
+						"          abbreviation as string,",
+						"          city_image_url as string,",
+						"          is_visible as boolean,",
+						"          deleted_at as timestamp,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          translation_id as string,",
+						"          state_id as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'query',",
+						"     query: 'select * from city',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
+						"supermarket, city join(supermarket@state_id == toInteger(city@state_id)",
+						"     && city == city@name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"derivedColumn1 select(mapColumn(",
+						"          id = supermarket@id,",
+						"          name = supermarket@name,",
+						"          address,",
+						"          mobile_number,",
+						"          country_id = supermarket@country_id,",
+						"          created_at = supermarket@created_at,",
+						"          updated_at = supermarket@updated_at,",
+						"          is_visible = supermarket@is_visible,",
+						"          latitude = supermarket@latitude,",
+						"          longitude = supermarket@longitude,",
+						"          time_slots_lead_time,",
+						"          express_delivery_fee,",
+						"          call_mask,",
+						"          minimum_total_amount_for_free_delivery,",
+						"          description,",
+						"          city_id = city@id,",
+						"          translation_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"join1 derive(translation_id = coalesce(translation_id,'')) ~> derivedColumn1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'super_market',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     batchSize: 100000,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/user')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -175,215 +312,6 @@
 						"          blacklisted_at,",
 						"          blacklisted_reason,",
 						"          city_id",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/order')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "Order DB"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "city"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "ordercancellationreason"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "join1"
-						},
-						{
-							"name": "select1"
-						},
-						{
-							"name": "join2"
-						},
-						{
-							"name": "select2"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          item_total as decimal(38,18),",
-						"          total as decimal(38,18),",
-						"          status as string,",
-						"          user_id as integer,",
-						"          completed_at as timestamp,",
-						"          bill_address_id as integer,",
-						"          ship_address_id as integer,",
-						"          payment_total as decimal(38,18),",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          currency as string,",
-						"          item_count as integer,",
-						"          cancel_reason as string,",
-						"          cancelled_at as timestamp,",
-						"          cancelled_by as integer,",
-						"          delivery_option_id as integer,",
-						"          country_id as integer,",
-						"          payment_option_id as integer,",
-						"          city as string,",
-						"          language_id as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source(output(",
-						"          id as integer,",
-						"          name as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'query',",
-						"     query: 'select id, name from city',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
-						"source(output(",
-						"          id as integer,",
-						"          reason_en as string,",
-						"          reason_ar as string,",
-						"          visible as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          deleted_at as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'query',",
-						"     query: 'select * from order_cancellation_reason',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> ordercancellationreason",
-						"source1, city join(lower(city) == name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
-						"          id = source1@id,",
-						"          item_total,",
-						"          total,",
-						"          status,",
-						"          user_id,",
-						"          completed_at,",
-						"          bill_address_id,",
-						"          ship_address_id,",
-						"          payment_total,",
-						"          created_at,",
-						"          updated_at,",
-						"          currency,",
-						"          item_count,",
-						"          cancelled_at,",
-						"          cancelled_by,",
-						"          delivery_option_id,",
-						"          country_id,",
-						"          payment_option_id,",
-						"          language_id,",
-						"          city_id = city@id,",
-						"          cancel_reason",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1, ordercancellationreason join(cancel_reason == reason_en,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join2",
-						"join2 select(mapColumn(",
-						"          id = select1@id,",
-						"          item_total,",
-						"          total,",
-						"          status,",
-						"          user_id,",
-						"          completed_at,",
-						"          bill_address_id,",
-						"          ship_address_id,",
-						"          payment_total,",
-						"          created_at = select1@created_at,",
-						"          updated_at = select1@updated_at,",
-						"          currency,",
-						"          item_count,",
-						"          cancelled_at,",
-						"          cancelled_by,",
-						"          delivery_option_id,",
-						"          country_id,",
-						"          payment_option_id,",
-						"          language_id,",
-						"          city_id,",
-						"          order_cancellation_id = ordercancellationreason@id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select2",
-						"select2 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'order',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: true,",
-						"     updateable: false,",
-						"     upsertable: false,",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          item_total,",
-						"          total,",
-						"          status,",
-						"          user_id,",
-						"          completed_at,",
-						"          bill_address_id,",
-						"          ship_address_id,",
-						"          payment_total,",
-						"          created_at,",
-						"          updated_at,",
-						"          currency,",
-						"          item_count,",
-						"          cancelled_at,",
-						"          cancelled_by,",
-						"          delivery_option_id,",
-						"          country_id,",
-						"          payment_option_id,",
-						"          language_id,",
-						"          city_id,",
-						"          order_cancellation_id",
 						"     )) ~> sink1"
 					]
 				}
