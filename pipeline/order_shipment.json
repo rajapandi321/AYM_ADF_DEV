@@ -119,6 +119,30 @@
 							},
 							{
 								"source": {
+									"name": "order_type",
+									"type": "String",
+									"physicalType": "character varying"
+								},
+								"sink": {
+									"name": "order_type",
+									"type": "String",
+									"physicalType": "UTF8"
+								}
+							},
+							{
+								"source": {
+									"name": "time_slots_schedule_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "time_slots_schedule_id",
+									"type": "Int32",
+									"physicalType": "INT_32"
+								}
+							},
+							{
+								"source": {
 									"name": "supermarket_id",
 									"type": "Int32",
 									"physicalType": "integer"
