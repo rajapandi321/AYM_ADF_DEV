@@ -22,11 +22,13 @@
 						"query": "SELECT\n        a.id, \n        a.variant_id AS product_variant_id,\n        COALESCE(SUM(siu.quantity_count), 0) AS quantity,\n        a.price,\n        a.created_at,\n        a.replaced,\n        COALESCE(a.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n        CASE \n            WHEN a.on_sale = false THEN a.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN a.on_sale = true THEN a.price\n            ELSE '0'\n        END AS sale_price,\n        b.product_id,\n        CASE\n            WHEN d.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN d.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n        COALESCE(SUM(e.quantity), 0) AS picked_quantity,\n        0 AS picker_id,\n        COALESCE(c.shipment_id, 0) AS order_shipment_id,\n        1 AS category_id, -- default value = 1 (grocery id from category table)\n        '' AS status\n    FROM spree_line_items a \n    LEFT JOIN spree_variants b ON b.id = a.variant_id\n    LEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) c ON c.line_item_id = a.id\n    LEFT JOIN (\n        SELECT \n            line_item_id, \n            state, \n            COUNT(id) AS quantity_count\n        FROM spree_inventory_units \n        WHERE state != 'canceled'\n        GROUP BY line_item_id, state\n    ) siu ON siu.line_item_id = a.id \n    LEFT JOIN spree_orders d ON d.id = c.order_id\n    LEFT JOIN spree_picked_items e ON e.pickable_id = a.id\n    GROUP BY\n        a.id, \n        a.variant_id,\n        a.price,\n        a.created_at,\n        a.updated_at,\n        a.on_sale,\n        b.product_id,\n        d.replace_product,\n        c.shipment_id"
 					},
 					"sink": {
-						"type": "AzurePostgreSQLSink",
-						"writeBatchSize": 1000000,
-						"writeBatchTimeout": "00:30:00",
-						"preCopyScript": "ALTER TABLE order_product ADD COLUMN replaced BOOLEAN;",
-						"writeMethod": "CopyCommand"
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
 					},
 					"enableStaging": false,
 					"parallelCopies": 8,
@@ -48,48 +50,10 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "order_product"
-						}
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
 					}
 				]
-			},
-			{
-				"name": "Lookup1",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Copy data1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": "UPDATE order_product op\nSET status = (\n    CASE\n        WHEN op.picked_quantity >= op.quantity THEN 'picked'\n        WHEN op.replaced = 'true' THEN 'replaced'\n        WHEN os.status = 'pending' AND op.picked_quantity = 0 THEN 'pending'\n        WHEN os.status = 'delivered' AND op.picked_quantity = 0 THEN 'issue'\n        ELSE op.status -- Retain the current status if no conditions match\n    END\n)\nFROM order_shipment os\nWHERE op.order_shipment_id = os.id;\nSELECT 'Updated the Status' as update;",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "order_product"
-						}
-					},
-					"firstRowOnly": false
-				}
 			}
 		],
 		"folder": {
