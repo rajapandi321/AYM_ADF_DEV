@@ -40,9 +40,6 @@
 				},
 				{
 					"name": "addingstatuscondition"
-				},
-				{
-					"name": "updatestatuscolumn"
 				}
 			],
 			"scriptLines": [
@@ -133,8 +130,7 @@
 				"        )\r",
 				"    )\r",
 				")) ~> addingstatuscondition",
-				"addingstatuscondition alterRow(updateIf(true())) ~> updatestatuscolumn",
-				"updatestatuscolumn sink(allowSchemaDrift: true,",
+				"addingstatuscondition sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          id as integer,",
