@@ -57,8 +57,8 @@
 				]
 			},
 			{
-				"name": "Data flow1",
-				"type": "ExecuteDataFlow",
+				"name": "Lookup1",
+				"type": "Lookup",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
@@ -76,15 +76,19 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"dataflow": {
-						"referenceName": "order_product",
-						"type": "DataFlowReference"
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "UPDATE order_product op\nSET status = (\n    CASE\n        WHEN op.picked_quantity >= op.quantity THEN 'picked'\n        WHEN op.replaced = 'true' THEN 'replaced'\n        WHEN os.status = 'pending' AND op.picked_quantity = 0 THEN 'pending'\n        WHEN os.status = 'delivered' AND op.picked_quantity = 0 THEN 'issue'\n        ELSE op.status -- Retain the current status if no conditions match\n    END\n)\nFROM order_shipment os\nWHERE op.order_shipment_id = os.id;",
+						"partitionOption": "None"
 					},
-					"compute": {
-						"coreCount": 8,
-						"computeType": "General"
+					"dataset": {
+						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order_product"
+						}
 					},
-					"traceLevel": "Fine"
+					"firstRowOnly": false
 				}
 			}
 		],
