@@ -8,9 +8,9 @@
 		"typeProperties": {
 			"sources": [
 				{
-					"linkedService": {
-						"referenceName": "LS_V2_PRODUCTION_SERVER",
-						"type": "LinkedServiceReference"
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
 					},
 					"name": "extractorderproduct"
 				},
@@ -46,40 +46,10 @@
 				}
 			],
 			"scriptLines": [
-				"source(output(",
-				"          id as integer,",
-				"          product_id as integer,",
-				"          quantity as integer,",
-				"          price as double,",
-				"          action_price as double,",
-				"          status as string,",
-				"          picker_id as integer,",
-				"          picked_quantity as integer,",
-				"          created_at as timestamp,",
-				"          updated_at as timestamp,",
-				"          deleted_at as timestamp,",
-				"          replacement_pref as string,",
-				"          order_shipment_id as integer,",
-				"          product_variant_id as integer,",
-				"          category_id as integer,",
-				"          replacement_of as integer,",
-				"          added_by as integer,",
-				"          modified_by as integer,",
-				"          delivery_instruction as string,",
-				"          sale_price as double,",
-				"          product_report_id as integer,",
-				"          picked_weight as double,",
-				"          replaced_by as integer,",
-				"          meta as string,",
-				"          replaced as boolean",
-				"     ),",
-				"     allowSchemaDrift: true,",
+				"source(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     format: 'table',",
-				"     tableName: 'order_product',",
-				"     schemaName: 'public',",
-				"     store: 'postgres',",
-				"     isolationLevel: 'READ_UNCOMMITTED') ~> extractorderproduct",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> extractorderproduct",
 				"source(output(",
 				"          id as integer,",
 				"          order_id as integer,",
@@ -124,7 +94,7 @@
 				"          order_shipment_id,",
 				"          product_variant_id,",
 				"          category_id,",
-				"          order_shipment_status = ordershipment@status,",
+				"          order_shipment_status = status,",
 				"          quantity,",
 				"          picked_quantity,",
 				"          replaced",
