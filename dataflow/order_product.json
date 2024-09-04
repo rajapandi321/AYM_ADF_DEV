@@ -1,0 +1,17 @@
+{
+	"name": "order_product",
+	"properties": {
+		"folder": {
+			"name": "Order DB"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [],
+			"sinks": [],
+			"transformations": [],
+			"scriptLines": [
+				""
+			]
+		}
+	}
+}
