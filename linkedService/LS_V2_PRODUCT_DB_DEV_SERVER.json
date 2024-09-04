@@ -4,7 +4,7 @@
 		"annotations": [],
 		"type": "AzurePostgreSql",
 		"typeProperties": {
-			"connectionString": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0",
+			"connectionString": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0;Timeout=120;CommandTimeout=300",
 			"password": {
 				"type": "AzureKeyVaultSecret",
 				"store": {
