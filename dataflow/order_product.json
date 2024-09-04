@@ -120,8 +120,14 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 derive(status = case(picked_quantity >= quantity, 'picked', \r",
-				"    case())) ~> derivedColumn1"
+				"select1 derive(status = iif(picked_quantity >= quantity, 'picked',\r",
+				"    iif(replaced == true(), 'replaced',\r",
+				"        iif(order_shipment_status == 'pending' && picked_quantity == 0, 'pending',\r",
+				"            iif(order_shipment_status == 'delivered' && picked_quantity == 0, 'issue', '')\r",
+				"        )\r",
+				"    )\r",
+				")\r",
+				") ~> derivedColumn1"
 			]
 		}
 	}
