@@ -6,11 +6,23 @@
 		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
-			"sources": [],
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "extractorderproduct"
+				}
+			],
 			"sinks": [],
 			"transformations": [],
 			"scriptLines": [
-				""
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> extractorderproduct"
 			]
 		}
 	}
