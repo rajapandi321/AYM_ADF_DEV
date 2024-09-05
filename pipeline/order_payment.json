@@ -79,26 +79,14 @@
 							},
 							{
 								"source": {
-									"name": "approved",
-									"type": "Boolean",
-									"physicalType": "boolean"
+									"name": "status",
+									"type": "String",
+									"physicalType": "character varying"
 								},
 								"sink": {
-									"name": "approved",
-									"type": "Boolean",
-									"physicalType": "boolean"
-								}
-							},
-							{
-								"source": {
-									"name": "created_at",
-									"type": "DateTime",
-									"physicalType": "timestamp without time zone"
-								},
-								"sink": {
-									"name": "created_at",
-									"type": "DateTime",
-									"physicalType": "timestamp without time zone"
+									"name": "status",
+									"type": "String",
+									"physicalType": "character varying"
 								}
 							},
 							{
@@ -111,6 +99,42 @@
 									"name": "shipment_id",
 									"type": "Int32",
 									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "payment_option_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "payment_option_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "source_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "source_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "source_type",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "source_type",
+									"type": "String",
+									"physicalType": "character varying"
 								}
 							},
 							{
