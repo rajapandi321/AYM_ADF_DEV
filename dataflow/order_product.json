@@ -169,7 +169,6 @@
 				"     updateable: false,",
 				"     upsertable: false,",
 				"     store: 'postgres',",
-				"     postSQLs:['alter table order_product drop column replaced;'],",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     mapColumn(",
@@ -188,7 +187,6 @@
 				"          product_variant_id,",
 				"          category_id,",
 				"          sale_price,",
-				"          product_variant_id,",
 				"          picked_weight",
 				"     )) ~> writestatusbacktodb"
 			]
