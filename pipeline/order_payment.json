@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT\n    ROW_NUMBER() over () as id,\n    sp.order_id,\n    sp.response_code AS transaction_id,\n    sp.amount,\n    coalesce(so.currency,''),\n    sp.state AS status,\n    sp.payment_method_id AS payment_option_id,\n    sp.source_id,\n\t  ss.id as shipment_id,\n    substring(sp.source_type,7) AS source_type\nFROM \n    spree_payments sp\nleft JOIN spree_orders so ON so.id = sp.order_id\nLEFT JOIN spree_shipments ss on ss.order_id = so.id;"
+						"query": "SELECT\n    ROW_NUMBER() over () as id,\n    sp.order_id,\n    sp.response_code AS transaction_id,\n    sp.amount,\n    coalesce(so.currency,'') as currency,\n    sp.state AS status,\n    sp.payment_method_id AS payment_option_id,\n    sp.source_id,\n\t  ss.id as shipment_id,\n    substring(sp.source_type,7) AS source_type\nFROM \n    spree_payments sp\nleft JOIN spree_orders so ON so.id = sp.order_id\nLEFT JOIN spree_shipments ss on ss.order_id = so.id;"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
