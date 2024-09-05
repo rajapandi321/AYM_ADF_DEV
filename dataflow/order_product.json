@@ -53,6 +53,7 @@
 				"          action_price as decimal(38,18),",
 				"          sale_price as decimal(38,18),",
 				"          product_id as integer,",
+				"          replaced as boolean,",
 				"          replacement_pref as string,",
 				"          picked_quantity as long,",
 				"          picked_weight as long,",
