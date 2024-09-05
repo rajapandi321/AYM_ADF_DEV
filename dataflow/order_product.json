@@ -119,7 +119,8 @@
 				"          order_shipment_id,",
 				"          category_id,",
 				"          status = extractorderproduct@status,",
-				"          order_shipment_status = ordershipment@status",
+				"          order_shipment_status = ordershipment@status,",
+				"          picked_weight",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectingmandatoryfields",
@@ -186,7 +187,8 @@
 				"          product_variant_id,",
 				"          category_id,",
 				"          sale_price,",
-				"          product_variant_id",
+				"          product_variant_id,",
+				"          picked_weight",
 				"     )) ~> writestatusbacktodb"
 			]
 		}
