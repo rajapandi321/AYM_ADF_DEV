@@ -50,6 +50,9 @@
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "join1"
 				}
 			],
 			"scriptLines": [
@@ -144,7 +147,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinbasedonshipmentid",
-				"joinbasedonshipmentid select(mapColumn(",
+				"join1 select(mapColumn(",
 				"          id = extractorderproduct@id,",
 				"          product_variant_id,",
 				"          quantity,",
@@ -179,6 +182,11 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
+				"joinbasedonshipmentid, select1 join(order_id == select1@id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
 				"addingstatuscondition sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
