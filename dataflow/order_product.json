@@ -20,6 +20,13 @@
 						"type": "LinkedServiceReference"
 					},
 					"name": "ordershipment"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "orders"
 				}
 			],
 			"sinks": [
@@ -40,6 +47,9 @@
 				},
 				{
 					"name": "addingstatuscondition"
+				},
+				{
+					"name": "select1"
 				}
 			],
 			"scriptLines": [
@@ -98,6 +108,37 @@
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> ordershipment",
+				"source(output(",
+				"          id as integer,",
+				"          item_total as double,",
+				"          total as double,",
+				"          status as string,",
+				"          completed_at as timestamp,",
+				"          user_id as integer,",
+				"          country_id as integer,",
+				"          city_id as integer,",
+				"          payment_total as double,",
+				"          currency as string,",
+				"          item_count as integer,",
+				"          delivery_option_id as integer,",
+				"          payment_option_id as integer,",
+				"          language_id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          cancelled_by as integer,",
+				"          cancelled_at as timestamp,",
+				"          order_cancellation_reason_id as integer,",
+				"          order_cancellation_comment as string,",
+				"          user_card_id as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'order',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> orders",
 				"extractorderproduct, ordershipment join(order_shipment_id == ordershipment@id,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
@@ -132,6 +173,12 @@
 				"        )\r",
 				"    )\r",
 				")) ~> addingstatuscondition",
+				"orders select(mapColumn(",
+				"          id,",
+				"          status",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
 				"addingstatuscondition sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
