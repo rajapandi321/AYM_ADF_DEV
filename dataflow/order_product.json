@@ -53,9 +53,6 @@
 				},
 				{
 					"name": "join1"
-				},
-				{
-					"name": "filter1"
 				}
 			],
 			"scriptLines": [
@@ -173,10 +170,10 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectingmandatoryfields",
-				"filter1 derive(status = iif(picked_quantity >= quantity, 'picked',\r",
+				"selectingmandatoryfields derive(status = iif(picked_quantity >= quantity, 'picked',\r",
 				"    iif(replaced == true(), 'replaced',\r",
 				"        iif(order_shipment_status == 'pending' && picked_quantity == 0, 'pending',\r",
-				"            iif(order_shipment_status == 'delivered' && picked_quantity == 0, 'issue', '')\r",
+				"            iif(order_shipment_status == 'delivered' || order_status == 'complete' && picked_quantity == 0, 'issue', '')\r",
 				"        )\r",
 				"    )\r",
 				")) ~> addingstatuscondition",
@@ -191,7 +188,6 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> join1",
-				"selectingmandatoryfields filter(isNull(order_status) == false()) ~> filter1",
 				"addingstatuscondition sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
