@@ -53,6 +53,9 @@
 				},
 				{
 					"name": "join1"
+				},
+				{
+					"name": "select2"
 				}
 			],
 			"scriptLines": [
@@ -188,6 +191,12 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> join1",
+				"ordershipment select(mapColumn(",
+				"          id,",
+				"          status",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
 				"addingstatuscondition sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
