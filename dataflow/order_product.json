@@ -175,7 +175,7 @@
 				")) ~> addingstatuscondition",
 				"orders select(mapColumn(",
 				"          id,",
-				"          status",
+				"          order_status = status",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
