@@ -25,7 +25,7 @@
 						"type": "ParquetSink",
 						"storeSettings": {
 							"type": "AzureBlobStorageWriteSettings",
-							"copyBehavior": "FlattenHierarchy"
+							"copyBehavior": "PreserveHierarchy"
 						},
 						"formatSettings": {
 							"type": "ParquetWriteSettings"
@@ -33,7 +33,7 @@
 					},
 					"enableStaging": false,
 					"parallelCopies": 8,
-					"dataIntegrationUnits": 8,
+					"dataIntegrationUnits": 4,
 					"translator": {
 						"type": "TabularTranslator",
 						"typeConversion": true,
