@@ -166,7 +166,7 @@
 				"          picker_id,",
 				"          order_shipment_id,",
 				"          category_id,",
-				"          status = {extractorderproduct@status},",
+				"          status,",
 				"          picked_weight,",
 				"          order_status,",
 				"          shipment_status",
