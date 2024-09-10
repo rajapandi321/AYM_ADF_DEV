@@ -197,8 +197,7 @@
 				"          order_shipment_id,",
 				"          product_variant_id,",
 				"          category_id,",
-				"          sale_price,",
-				"          picked_weight",
+				"          sale_price",
 				"     )) ~> writestatusbacktodb"
 			]
 		}
