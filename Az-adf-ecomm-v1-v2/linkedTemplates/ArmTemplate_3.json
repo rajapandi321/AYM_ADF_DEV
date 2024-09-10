@@ -13,6 +13,73 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/order_payment_refund')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select \nsr.id,\nsp.order_id,\ncase \nwhen sr.transaction_id is not null then sr.transaction_id \nelse sp.response_code \nend as transaction_id,\nsr.created_at,\nsr.updated_at,\nsr.amount,\ncase \n\twhen sr.status='uncertain' then 'pending'\n\twhen sr.status='failed' then 'failed'\n\twhen sr.status='success' then 'approved'\n\telse ''\nEnd as status,\n'SAR' as currency,\n'' as type\nFrom spree_refunds sr\ninner join spree_payments sp on sp.id=sr.payment_id \nwhere sr.payment_id is not null;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "order_payment_refund"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/order_product')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -33,13 +100,17 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n    a.id, \n    a.variant_id AS product_variant_id,\n    COALESCE(SUM(siu.quantity_count), 0) AS quantity,\n    a.price,\n    a.created_at,\n    coalesce(a.updated_at,current_timestamp) as updated_at,\n    CASE \n        WHEN a.on_sale = false THEN a.price\n        ELSE '0.0'\n    END AS action_price,\n    CASE \n        WHEN a.on_sale = true THEN a.price\n        ELSE '0'\n    END AS sale_price,\n    b.product_id,\n    CASE\n      WHEN d.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n      WHEN d.replace_product::varchar = 'false' THEN 'cancel'\n      ELSE NULL\n    END AS replacement_pref,\n    COALESCE(SUM(e.quantity), 0) AS picked_quantity,\n    0 AS picker_id,\n    COALESCE(c.shipment_id, 0) AS order_shipment_id,\n    1 AS category_id, -- default value = 1 (grocery id from category table)\n    '' AS status\nFROM spree_line_items a \nLEFT JOIN spree_variants b ON b.id = a.variant_id\nLEFT JOIN (\n    SELECT DISTINCT ON (line_item_id) * \n    FROM spree_inventory_units\n) c ON c.line_item_id = a.id\nLEFT JOIN (\n    SELECT \n        line_item_id, \n        state, \n        COUNT(id) AS quantity_count\n    FROM spree_inventory_units \n    GROUP BY line_item_id, state\n) siu ON siu.line_item_id = a.id AND siu.state != 'canceled'\nLEFT JOIN spree_orders d ON d.id = c.order_id\nLEFT JOIN spree_picked_items e ON e.pickable_id = a.id\nGROUP BY\n    a.id, \n    a.variant_id,\n    a.price,\n    a.created_at,\n    a.updated_at,\n    a.on_sale,\n    b.product_id,\n    d.replace_product,\n    c.shipment_id\nORDER BY a.id;"
+								"query": "select sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tsli.requested_quantity  as quantity,\n\t\tsli.quantity as picked_quantity,\n\t\tsli.price,\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0;"
 							},
 							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
 							},
 							"enableStaging": false,
 							"parallelCopies": 8,
@@ -62,13 +133,87 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"referenceName": "DS_Intermiadate_Result",
 								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "order_product"
-								}
+								"parameters": {}
 							}
 						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "order_product",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"extractorderproduct": {},
+									"ordershipment": {},
+									"orders": {},
+									"writestatusbacktodb": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
 					}
 				],
 				"policy": {
@@ -243,7 +388,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH cte AS (\n    SELECT \n        ssh.id,\n        ssh.order_id,\n        CASE \n            WHEN ssh.state = 'shipped' THEN 'delivered'\n            WHEN ssh.state = 'pending' THEN 'pending'\n            WHEN ssh.state = 'ready' THEN 'picked'\n            WHEN ssh.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ssh.created_at,\n        ssh.updated_at,\n        CAST((ssh.additional_tax_total + ssh.included_tax_total) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n        slto.time_slots_schedule_id,\n        so.supermarket_id,\n        sla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n        ROW_NUMBER() OVER (PARTITION BY ssh.id ORDER BY ssh.id) AS rn\n    FROM spree_shipments ssh\n    INNER JOIN spree_orders so ON so.id = ssh.order_id AND so.state != 'cart'\n    LEFT JOIN spree_lift_assignments sla ON sla.order_id = ssh.order_id\n    LEFT JOIN spree_adjustments sa ON sa.order_id = ssh.order_id AND sa.label = 'Express Fee'\n    LEFT JOIN danube_slot_to_orders slto ON slto.order_id = ssh.order_id\n    ORDER BY ssh.id ASC\n)\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slots_schedule_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nWHERE rn = 1;\n"
+								"query": "with cte as(\n\tselect  ss.id,\n\t\tso.id as order_id,\n\t\tCASE \n            WHEN ss.state = 'shipped' THEN 'delivered'\n            WHEN ss.state = 'pending' THEN 'pending'\n            WHEN ss.state = 'ready' THEN 'picked'\n            WHEN ss.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ss.created_at,\n        ss.updated_at,\n        CAST((so.total*(so.vat_percentage/100)) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n\t\tso.supermarket_id,\n\t\tdsto.time_slots_schedule_id as time_slot_id,\n\t\tsla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n\t\tROW_NUMBER() OVER (PARTITION BY ss.id ORDER BY ss.id) AS rn\n\t\nfrom spree_orders so\nINNER JOIN spree_shipments ss on ss.order_id = so.id\nLEFT JOIN danube_slot_to_orders dsto on dsto.order_id = so.id\nLEFT JOIN spree_lift_assignments sla ON sla.order_id = so.id\nLEFT JOIN spree_adjustments sa ON sa.order_id = so.id AND sa.label = 'Express Fee'\nwhere so.state != 'cart')\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slot_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nwhere rn = 1;"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -357,12 +502,12 @@
 									},
 									{
 										"source": {
-											"name": "time_slots_schedule_id",
+											"name": "time_slot_id",
 											"type": "Int32",
 											"physicalType": "integer"
 										},
 										"sink": {
-											"name": "time_slots_schedule_id",
+											"name": "time_slot_id",
 											"type": "Int32",
 											"physicalType": "INT_32"
 										}
@@ -477,8 +622,7 @@
 								"datasetParameters": {
 									"ordershipment": {},
 									"deliverytype": {},
-									"deliverycapacity": {},
-									"timeslot": {},
+									"source1": {},
 									"sink1": {}
 								}
 							},
@@ -488,6 +632,39 @@
 								"computeType": "General"
 							},
 							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
 						}
 					}
 				],
@@ -3076,352 +3253,6 @@
 								}
 							}
 						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/supermarket')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "supermarket_to_datalake",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select\n   ds.id,\n   dst.name,\n\tconcat(dst.address1,' ',dst.address2) as address,\n    LEFT(COALESCE(REPLACE(REPLACE(ds.phone, '+966', ''), '+973', ''), ''), 16) AS mobile_number,\n   ds.country_id,\n   ds.created_at,\n   ds.state_id,\n   lower(dst.city) as city,\n   ds.updated_at,\n   ds.visible as is_visible,\n   ds.latitude,\n   ds.longitude,\n   ds.time_slots_schedule_time_offset_override AS time_slots_lead_time,\n   ds.express_fee AS express_delivery_fee,\n   ds.call_masking as call_mask,\n   ds.min_item_total_for_free_delivery as minimum_total_amount_for_free_delivery,\n   COALESCE(dst.description, '') as description\nfrom danube_supermarkets ds\nleft join danube_supermarket_translations dst on dst.danube_supermarket_id =ds.id and dst.locale='en'\norder by ds.id;"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings",
-									"copyBehavior": "FlattenHierarchy"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "INT_32"
-										}
-									},
-									{
-										"source": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "UTF8"
-										}
-									},
-									{
-										"source": {
-											"name": "address",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "address",
-											"type": "String",
-											"physicalType": "UTF8"
-										}
-									},
-									{
-										"source": {
-											"name": "mobile_number",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "mobile_number",
-											"type": "String",
-											"physicalType": "UTF8"
-										}
-									},
-									{
-										"source": {
-											"name": "country_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "country_id",
-											"type": "Int32",
-											"physicalType": "INT_32"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "INT_96"
-										}
-									},
-									{
-										"source": {
-											"name": "state_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "state_id",
-											"type": "Int32",
-											"physicalType": "INT_32"
-										}
-									},
-									{
-										"source": {
-											"name": "city",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "city",
-											"type": "String",
-											"physicalType": "UTF8"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "INT_96"
-										}
-									},
-									{
-										"source": {
-											"name": "is_visible",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_visible",
-											"type": "Boolean",
-											"physicalType": "BOOLEAN"
-										}
-									},
-									{
-										"source": {
-											"name": "latitude",
-											"type": "Double",
-											"physicalType": "double precision"
-										},
-										"sink": {
-											"name": "latitude",
-											"type": "Double",
-											"physicalType": "DOUBLE"
-										}
-									},
-									{
-										"source": {
-											"name": "longitude",
-											"type": "Double",
-											"physicalType": "double precision"
-										},
-										"sink": {
-											"name": "longitude",
-											"type": "Double",
-											"physicalType": "DOUBLE"
-										}
-									},
-									{
-										"source": {
-											"name": "time_slots_lead_time",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "time_slots_lead_time",
-											"type": "Int32",
-											"physicalType": "INT_32"
-										}
-									},
-									{
-										"source": {
-											"name": "express_delivery_fee",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										},
-										"sink": {
-											"name": "express_delivery_fee",
-											"type": "Decimal",
-											"physicalType": "DECIMAL"
-										}
-									},
-									{
-										"source": {
-											"name": "call_mask",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "call_mask",
-											"type": "Boolean",
-											"physicalType": "BOOLEAN"
-										}
-									},
-									{
-										"source": {
-											"name": "minimum_total_amount_for_free_delivery",
-											"type": "Decimal",
-											"physicalType": "numeric"
-										},
-										"sink": {
-											"name": "minimum_total_amount_for_free_delivery",
-											"type": "Decimal",
-											"physicalType": "DECIMAL"
-										}
-									},
-									{
-										"source": {
-											"name": "description",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "description",
-											"type": "String",
-											"physicalType": "UTF8"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "supermarket_to_datalake",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "supermarket",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"supermarket": {},
-									"city": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
 					}
 				],
 				"policy": {

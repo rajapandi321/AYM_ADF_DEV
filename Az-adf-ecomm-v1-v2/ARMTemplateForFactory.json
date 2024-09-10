@@ -33,7 +33,7 @@
 		"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_DEV_SERVER'",
-			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0;Timeout=120;CommandTimeout=300"
 		},
 		"LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
@@ -1929,7 +1929,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select \n\tdtss.id, \n\tcast(dts.start_time as text), \n\tcast(dts.end_time as text),\n\tCASE\n\t\tWHEN dtss.day_of_week = 0 THEN 'sunday'\n\t\tWHEN dtss.day_of_week = 1 THEN 'monday'\n\t\tWHEN dtss.day_of_week = 2 THEN 'tuesday'\n\t\tWHEN dtss.day_of_week = 3 THEN 'wednesday'\n\t\tWHEN dtss.day_of_week = 4 THEN 'thursday'\n\t\tWHEN dtss.day_of_week = 5 THEN 'friday'\n\t\tWHEN dtss.day_of_week = 6 THEN 'saturday'\n\tElse 'sunday'\n\tEND AS day_of_week,\n\tdtss.spree_shipping_method_id as delivery_option_id,\n\tds.id as supermarket_id, \n\tcoalesce(dtss.delivery_capacity,0) as capacity, \n\tnull as time_slot_id, \n\tdtss.enabled as is_enabled,\n\tdtss.created_at,\n\tdtss.updated_at\nfrom danube_time_slots_schedules dtss\nleft join danube_time_slots dts on dts.id  = dtss.time_slot_id \nleft join danube_supermarkets ds on ds.zone_id = dtss.zone_id\norder by dts.id\nlimit 100;"
+								"query": "select \n\tdtss.id, \n\tcast(dts.start_time as text) as start_time, \n\tcast(dts.end_time as text) as end_time,\n\tCASE\n\t\tWHEN dtss.day_of_week = 0 THEN 'sunday'\n\t\tWHEN dtss.day_of_week = 1 THEN 'monday'\n\t\tWHEN dtss.day_of_week = 2 THEN 'tuesday'\n\t\tWHEN dtss.day_of_week = 3 THEN 'wednesday'\n\t\tWHEN dtss.day_of_week = 4 THEN 'thursday'\n\t\tWHEN dtss.day_of_week = 5 THEN 'friday'\n\t\tWHEN dtss.day_of_week = 6 THEN 'saturday'\n\tElse 'sunday'\n\tEND AS day_of_week,\n\tdtss.spree_shipping_method_id as delivery_option_id,\n\tds.id as supermarket_id, \n\tcoalesce(dtss.delivery_capacity,0) as capacity, \n\tnull as time_slot_id, \n\tdtss.enabled as is_enabled,\n\tdtss.created_at,\n\tdtss.updated_at\nfrom danube_time_slots_schedules dtss\nleft join danube_time_slots dts on dts.id  = dtss.time_slot_id \nleft join danube_supermarkets ds on ds.zone_id = dtss.zone_id\norder by dts.id\nlimit 100;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -4861,7 +4861,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n  ROW_NUMBER() OVER () as id,\n  so.id as order_id,\n  ss.id as shipment_id,\n  so.created_at,\n  so.currency,\n  coalesce(so.payment_amount_received,0) as amount,\n  so.auto_approved as approved,\n  sp_max.v1_payment_id as transaction_id\nFROM spree_orders so \nLEFT JOIN LATERAL (\n    SELECT sp.response_code as v1_payment_id\n    FROM spree_payments sp\n    LEFT JOIN spree_payment_methods spm ON spm.id = sp.payment_method_id\n    WHERE sp.order_id = so.id\n\t AND (\n\t\t (SELECT COUNT(*) FROM spree_payments WHERE order_id = so.id) <= 1 OR\n\t\tspm.type NOT IN ('Spree::Gateway::LoyaltyPoint', 'Spree::PaymentMethod::StoreCredit')\n\t )\n    ORDER BY sp.created_at DESC \n    LIMIT 1\n) sp_max ON true\nLEFT JOIN spree_shipments ss on ss.order_id = so.id\nwhere so.state != 'cart';"
+								"query": "SELECT\n    ROW_NUMBER() over () as id,\n    sp.order_id,\n    sp.response_code AS transaction_id,\n    sp.amount,\n    coalesce(so.currency,'') as currency,\n    sp.state AS status,\n    sp.payment_method_id AS payment_option_id,\n    sp.source_id,\n\t  ss.id as shipment_id,\n    substring(sp.source_type,8) AS source_type\nFROM \n    spree_payments sp\nleft JOIN spree_orders so ON so.id = sp.order_id\nLEFT JOIN spree_shipments ss on ss.order_id = so.id;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -4923,26 +4923,14 @@
 									},
 									{
 										"source": {
-											"name": "approved",
-											"type": "Boolean",
-											"physicalType": "boolean"
+											"name": "status",
+											"type": "String",
+											"physicalType": "character varying"
 										},
 										"sink": {
-											"name": "approved",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
+											"name": "status",
+											"type": "String",
+											"physicalType": "character varying"
 										}
 									},
 									{
@@ -4955,6 +4943,42 @@
 											"name": "shipment_id",
 											"type": "Int32",
 											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "payment_option_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "payment_option_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "source_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "source_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "source_type",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "source_type",
+											"type": "String",
+											"physicalType": "character varying"
 										}
 									},
 									{
@@ -5099,13 +5123,17 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n    a.id, \n    a.variant_id AS product_variant_id,\n    COALESCE(SUM(siu.quantity_count), 0) AS quantity,\n    a.price,\n    a.created_at,\n    coalesce(a.updated_at,current_timestamp) as updated_at,\n    CASE \n        WHEN a.on_sale = false THEN a.price\n        ELSE '0.0'\n    END AS action_price,\n    CASE \n        WHEN a.on_sale = true THEN a.price\n        ELSE '0'\n    END AS sale_price,\n    b.product_id,\n    CASE\n      WHEN d.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n      WHEN d.replace_product::varchar = 'false' THEN 'cancel'\n      ELSE NULL\n    END AS replacement_pref,\n    COALESCE(SUM(e.quantity), 0) AS picked_quantity,\n    0 AS picker_id,\n    COALESCE(c.shipment_id, 0) AS order_shipment_id,\n    1 AS category_id, -- default value = 1 (grocery id from category table)\n    '' AS status\nFROM spree_line_items a \nLEFT JOIN spree_variants b ON b.id = a.variant_id\nLEFT JOIN (\n    SELECT DISTINCT ON (line_item_id) * \n    FROM spree_inventory_units\n) c ON c.line_item_id = a.id\nLEFT JOIN (\n    SELECT \n        line_item_id, \n        state, \n        COUNT(id) AS quantity_count\n    FROM spree_inventory_units \n    GROUP BY line_item_id, state\n) siu ON siu.line_item_id = a.id AND siu.state != 'canceled'\nLEFT JOIN spree_orders d ON d.id = c.order_id\nLEFT JOIN spree_picked_items e ON e.pickable_id = a.id\nGROUP BY\n    a.id, \n    a.variant_id,\n    a.price,\n    a.created_at,\n    a.updated_at,\n    a.on_sale,\n    b.product_id,\n    d.replace_product,\n    c.shipment_id\nORDER BY a.id;"
+								"query": "select sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tsli.requested_quantity  as quantity,\n\t\tsli.quantity as picked_quantity,\n\t\tsli.price,\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0;"
 							},
 							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
 							},
 							"enableStaging": false,
 							"parallelCopies": 8,
@@ -5128,13 +5156,87 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+								"referenceName": "DS_Intermiadate_Result",
 								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "order_product"
-								}
+								"parameters": {}
 							}
 						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "order_product",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"extractorderproduct": {},
+									"ordershipment": {},
+									"orders": {},
+									"writestatusbacktodb": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
 					}
 				],
 				"policy": {
@@ -5147,7 +5249,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_V1_PRODUCTION')]",
-				"[concat(variables('factoryId'), '/datasets/DS_V2_ORDER_DB_PRODUCTION')]"
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/dataflows/order_product')]"
 			]
 		},
 		{
@@ -5315,7 +5418,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH cte AS (\n    SELECT \n        ssh.id,\n        ssh.order_id,\n        CASE \n            WHEN ssh.state = 'shipped' THEN 'delivered'\n            WHEN ssh.state = 'pending' THEN 'pending'\n            WHEN ssh.state = 'ready' THEN 'picked'\n            WHEN ssh.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ssh.created_at,\n        ssh.updated_at,\n        CAST((ssh.additional_tax_total + ssh.included_tax_total) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n        slto.time_slots_schedule_id,\n        so.supermarket_id,\n        sla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n        ROW_NUMBER() OVER (PARTITION BY ssh.id ORDER BY ssh.id) AS rn\n    FROM spree_shipments ssh\n    INNER JOIN spree_orders so ON so.id = ssh.order_id AND so.state != 'cart'\n    LEFT JOIN spree_lift_assignments sla ON sla.order_id = ssh.order_id\n    LEFT JOIN spree_adjustments sa ON sa.order_id = ssh.order_id AND sa.label = 'Express Fee'\n    LEFT JOIN danube_slot_to_orders slto ON slto.order_id = ssh.order_id\n    ORDER BY ssh.id ASC\n)\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slots_schedule_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nWHERE rn = 1;\n"
+								"query": "with cte as(\n\tselect  ss.id,\n\t\tso.id as order_id,\n\t\tCASE \n            WHEN ss.state = 'shipped' THEN 'delivered'\n            WHEN ss.state = 'pending' THEN 'pending'\n            WHEN ss.state = 'ready' THEN 'picked'\n            WHEN ss.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ss.created_at,\n        ss.updated_at,\n        CAST((so.total*(so.vat_percentage/100)) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n\t\tso.supermarket_id,\n\t\tdsto.time_slots_schedule_id as time_slot_id,\n\t\tsla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n\t\tROW_NUMBER() OVER (PARTITION BY ss.id ORDER BY ss.id) AS rn\n\t\nfrom spree_orders so\nINNER JOIN spree_shipments ss on ss.order_id = so.id\nLEFT JOIN danube_slot_to_orders dsto on dsto.order_id = so.id\nLEFT JOIN spree_lift_assignments sla ON sla.order_id = so.id\nLEFT JOIN spree_adjustments sa ON sa.order_id = so.id AND sa.label = 'Express Fee'\nwhere so.state != 'cart')\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slot_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nwhere rn = 1;"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -5429,12 +5532,12 @@
 									},
 									{
 										"source": {
-											"name": "time_slots_schedule_id",
+											"name": "time_slot_id",
 											"type": "Int32",
 											"physicalType": "integer"
 										},
 										"sink": {
-											"name": "time_slots_schedule_id",
+											"name": "time_slot_id",
 											"type": "Int32",
 											"physicalType": "INT_32"
 										}
@@ -5549,8 +5652,7 @@
 								"datasetParameters": {
 									"ordershipment": {},
 									"deliverytype": {},
-									"deliverycapacity": {},
-									"timeslot": {},
+									"source1": {},
 									"sink1": {}
 								}
 							},
@@ -5560,6 +5662,39 @@
 								"computeType": "General"
 							},
 							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
 						}
 					}
 				],
@@ -8820,7 +8955,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n        SELECT \n            json_agg(coordinate) \n        FROM (\n            SELECT \n                json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null;"
+								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\t\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\t\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    sz.id,\n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n\tSELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_ASText(geom) as delivery_area,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -11516,6 +11651,273 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/order_product')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order DB"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "extractorderproduct"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "ordershipment"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "orders"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "writestatusbacktodb"
+						}
+					],
+					"transformations": [
+						{
+							"name": "joinbasedonshipmentid"
+						},
+						{
+							"name": "selectingmandatoryfields"
+						},
+						{
+							"name": "addingstatuscondition"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          product_variant_id as integer,",
+						"          quantity as decimal(38,18),",
+						"          price as decimal(38,18),",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          action_price as decimal(38,18),",
+						"          sale_price as decimal(38,18),",
+						"          product_id as integer,",
+						"          replaced as boolean,",
+						"          replacement_pref as string,",
+						"          picked_quantity as long,",
+						"          picked_weight as long,",
+						"          picker_id as integer,",
+						"          order_shipment_id as integer,",
+						"          category_id as integer,",
+						"          status as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> extractorderproduct",
+						"source(output(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          supermarket_id as integer,",
+						"          delivery_type_id as integer,",
+						"          delivery_date as date,",
+						"          delivered_at as timestamp,",
+						"          total as double,",
+						"          tax_total as double,",
+						"          status as string,",
+						"          driver_id as integer,",
+						"          delivery_charges as double,",
+						"          time_slot_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          processing_start_at as timestamp,",
+						"          dispatch_job_id as integer,",
+						"          is_delivery_on_hold as boolean,",
+						"          delivery_order as integer,",
+						"          formatted_time_slot as string,",
+						"          promotion_woa_percentage as double,",
+						"          promotion_woa_max_discount as double,",
+						"          discount_given as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'order_shipment',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> ordershipment",
+						"source(output(",
+						"          id as integer,",
+						"          item_total as double,",
+						"          total as double,",
+						"          status as string,",
+						"          completed_at as timestamp,",
+						"          user_id as integer,",
+						"          country_id as integer,",
+						"          city_id as integer,",
+						"          payment_total as double,",
+						"          currency as string,",
+						"          item_count as integer,",
+						"          delivery_option_id as integer,",
+						"          payment_option_id as integer,",
+						"          language_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          cancelled_by as integer,",
+						"          cancelled_at as timestamp,",
+						"          order_cancellation_reason_id as integer,",
+						"          order_cancellation_comment as string,",
+						"          user_card_id as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'order',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> orders",
+						"extractorderproduct, select2 join(order_shipment_id == shipment_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinbasedonshipmentid",
+						"join1 select(mapColumn(",
+						"          id = extractorderproduct@id,",
+						"          product_variant_id,",
+						"          quantity,",
+						"          price,",
+						"          created_at,",
+						"          replaced,",
+						"          updated_at,",
+						"          action_price,",
+						"          sale_price,",
+						"          product_id,",
+						"          replacement_pref,",
+						"          picked_quantity,",
+						"          picker_id,",
+						"          order_shipment_id,",
+						"          category_id,",
+						"          status,",
+						"          picked_weight,",
+						"          order_status,",
+						"          shipment_status",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectingmandatoryfields",
+						"selectingmandatoryfields derive(status = iif(picked_quantity >= quantity, 'picked',\r",
+						"    iif(replaced == true(), 'replaced',\r",
+						"        iif(shipment_status == 'pending' && picked_quantity == 0, 'pending',\r",
+						"            iif(shipment_status == 'delivered' || order_status == 'complete' && picked_quantity == 0, 'issue', '')\r",
+						"        )\r",
+						"    )\r",
+						")) ~> addingstatuscondition",
+						"orders select(mapColumn(",
+						"          id,",
+						"          order_status = status",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"joinbasedonshipmentid, select1 join(order_id == select1@id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"ordershipment select(mapColumn(",
+						"          shipment_id = id,",
+						"          shipment_status = status,",
+						"          order_id",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"addingstatuscondition sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          product_id as integer,",
+						"          quantity as integer,",
+						"          price as double,",
+						"          action_price as double,",
+						"          status as string,",
+						"          picker_id as integer,",
+						"          picked_quantity as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          replacement_pref as string,",
+						"          order_shipment_id as integer,",
+						"          product_variant_id as integer,",
+						"          category_id as integer,",
+						"          replacement_of as integer,",
+						"          added_by as integer,",
+						"          modified_by as integer,",
+						"          delivery_instruction as string,",
+						"          sale_price as double,",
+						"          product_report_id as integer,",
+						"          picked_weight as double,",
+						"          replaced_by as integer,",
+						"          meta as string,",
+						"          replaced as boolean",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'order_product',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          product_id,",
+						"          quantity,",
+						"          price,",
+						"          action_price,",
+						"          status,",
+						"          picker_id,",
+						"          picked_quantity,",
+						"          created_at,",
+						"          updated_at,",
+						"          replacement_pref,",
+						"          order_shipment_id,",
+						"          product_variant_id,",
+						"          category_id,",
+						"          sale_price,",
+						"          picked_weight",
+						"     )) ~> writestatusbacktodb"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/order_shipment')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -11545,14 +11947,7 @@
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "deliverycapacity"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "timeslot"
+							"name": "source1"
 						}
 					],
 					"sinks": [
@@ -11566,28 +11961,22 @@
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "joindeliverytype"
 						},
 						{
 							"name": "selectdeliverytype"
-						},
-						{
-							"name": "selectdeliverycapacity"
-						},
-						{
-							"name": "join2"
-						},
-						{
-							"name": "selecttimeslots"
-						},
-						{
-							"name": "join3"
 						},
 						{
 							"name": "mergingtimeslots"
 						},
 						{
 							"name": "select1"
+						},
+						{
+							"name": "selecttimeslots"
+						},
+						{
+							"name": "join1"
 						}
 					],
 					"scriptLines": [
@@ -11600,7 +11989,7 @@
 						"          tax_total as double,",
 						"          total as decimal(38,18),",
 						"          order_type as string,",
-						"          time_slots_schedule_id as integer,",
+						"          time_slot_id as integer,",
 						"          supermarket_id as integer,",
 						"          delivery_date as timestamp,",
 						"          delivery_charges as decimal(38,18),",
@@ -11627,23 +12016,6 @@
 						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
 						"source(output(",
 						"          id as integer,",
-						"          supermarket_id as integer,",
-						"          time_slot_id as integer,",
-						"          capacity as integer,",
-						"          is_enabled as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          deleted_at as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'delivery_capacity',",
-						"     schemaName: 'public',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
-						"source(output(",
-						"          id as integer,",
 						"          start_time as string,",
 						"          end_time as string,",
 						"          country_id as integer,",
@@ -11660,42 +12032,19 @@
 						"     tableName: 'time_slot',",
 						"     schemaName: 'public',",
 						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
 						"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
-						"     joinType:'inner',",
+						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
+						"     broadcast: 'auto')~> joindeliverytype",
 						"deliverytype select(mapColumn(",
 						"          delivery_type_id = id,",
 						"          delivery_type_name = name",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
-						"deliverycapacity select(mapColumn(",
-						"          dc_id = id,",
-						"          dc_time_slot_id = time_slot_id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectdeliverycapacity",
-						"join1, selectdeliverycapacity join(time_slots_schedule_id == dc_id,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join2",
-						"timeslot select(mapColumn(",
-						"          time_slot_id = id,",
-						"          start_time,",
-						"          end_time",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
-						"join2, selecttimeslots join(dc_time_slot_id == time_slot_id,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join3",
-						"join3 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
+						"join1 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
 						"mergingtimeslots select(mapColumn(",
 						"          id,",
 						"          order_id,",
@@ -11705,18 +12054,29 @@
 						"          tax_total,",
 						"          total,",
 						"          order_type,",
-						"          time_slots_schedule_id,",
+						"          time_slot_id,",
 						"          supermarket_id,",
 						"          delivery_date,",
 						"          delivery_charges,",
 						"          is_delivery_on_hold,",
 						"          processing_start_at,",
 						"          delivery_type_id,",
-						"          time_slot_id = dc_time_slot_id,",
 						"          formatted_time_slot",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> select1",
+						"source1 select(mapColumn(",
+						"          tc_id = id,",
+						"          start_time,",
+						"          end_time",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
+						"joindeliverytype, selecttimeslots join(time_slot_id == tc_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
 						"select1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",

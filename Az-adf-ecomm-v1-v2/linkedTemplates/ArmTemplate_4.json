@@ -13,6 +13,352 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/supermarket')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "supermarket_to_datalake",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "select\n   ds.id,\n   dst.name,\n\tconcat(dst.address1,' ',dst.address2) as address,\n    LEFT(COALESCE(REPLACE(REPLACE(ds.phone, '+966', ''), '+973', ''), ''), 16) AS mobile_number,\n   ds.country_id,\n   ds.created_at,\n   ds.state_id,\n   lower(dst.city) as city,\n   ds.updated_at,\n   ds.visible as is_visible,\n   ds.latitude,\n   ds.longitude,\n   ds.time_slots_schedule_time_offset_override AS time_slots_lead_time,\n   ds.express_fee AS express_delivery_fee,\n   ds.call_masking as call_mask,\n   ds.min_item_total_for_free_delivery as minimum_total_amount_for_free_delivery,\n   COALESCE(dst.description, '') as description\nfrom danube_supermarkets ds\nleft join danube_supermarket_translations dst on dst.danube_supermarket_id =ds.id and dst.locale='en'\norder by ds.id;"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "FlattenHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "address",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "address",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "mobile_number",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "mobile_number",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "state_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "state_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "BOOLEAN"
+										}
+									},
+									{
+										"source": {
+											"name": "latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "latitude",
+											"type": "Double",
+											"physicalType": "DOUBLE"
+										}
+									},
+									{
+										"source": {
+											"name": "longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "longitude",
+											"type": "Double",
+											"physicalType": "DOUBLE"
+										}
+									},
+									{
+										"source": {
+											"name": "time_slots_lead_time",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "time_slots_lead_time",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "express_delivery_fee",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "express_delivery_fee",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "call_mask",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "call_mask",
+											"type": "Boolean",
+											"physicalType": "BOOLEAN"
+										}
+									},
+									{
+										"source": {
+											"name": "minimum_total_amount_for_free_delivery",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "minimum_total_amount_for_free_delivery",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "description",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "description",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "supermarket_to_datalake",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "supermarket",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"supermarket": {},
+									"city": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/supermarket_delivery_option')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -267,7 +613,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n        SELECT \n            json_agg(coordinate) \n        FROM (\n            SELECT \n                json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null;"
+								"query": "WITH collected_geometries AS (\n    SELECT \n        szm.zone_id,\n        ST_ASText(sd.region) AS geom,\n\t\tAVG(ST_X(sd.center::geometry)) AS center_longitude,\n        AVG(ST_Y(sd.center::geometry)) AS center_latitude,\n\t\tROW_NUMBER() over (partition by zone_id order by zone_id) as row_num\n\t\n    FROM \n        spree_districts sd\n    JOIN \n        spree_zone_members szm ON sd.id = szm.zoneable_id\n    WHERE \n        sd.visible = true\n    GROUP BY \n        szm.zone_id, sd.region\n), filtered_geometries AS(\nSELECT zone_id,geom,center_longitude,center_latitude\nFROM collected_geometries\nwhere row_num = 1)\nSELECT \n    sz.id,\n    coalesce(ds.id) AS supermarket_id,\n    1 AS delivery_type_id,\n    (\n\tSELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(ST_GeometryN(cg.geom,1))::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_ASText(geom) as delivery_area,\n    cg.center_longitude,\n    cg.center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM \n    spree_zones sz\nLEFT JOIN \n    danube_supermarkets ds ON sz.id = ds.zone_id AND ds.supermarket_type IN ('regular', 'regular_express')\nLEFT JOIN \n    filtered_geometries cg ON sz.id = cg.zone_id\nwhere geom is not null\nand ds.id is not null"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",

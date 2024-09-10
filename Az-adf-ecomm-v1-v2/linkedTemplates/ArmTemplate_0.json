@@ -33,7 +33,7 @@
 		"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_DEV_SERVER'",
-			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0;Timeout=120;CommandTimeout=300"
 		},
 		"LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",

@@ -33,7 +33,7 @@
 		"LS_V2_PRODUCT_DB_DEV_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_DEV_SERVER'",
-			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0"
+			"defaultValue": "Host=az-postgress-danube-dev.postgres.database.azure.com;Port=5432;Database=product-db-dev;UID=dnbpostgressdev@az-postgress-danube-dev;EncryptionMethod=0;Timeout=120;CommandTimeout=300"
 		},
 		"LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
@@ -77,7 +77,7 @@
 		{
 			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_0",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -131,7 +131,7 @@
 		{
 			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_1",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -151,7 +151,7 @@
 		{
 			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_2",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -171,7 +171,7 @@
 		{
 			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_3",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
@@ -191,7 +191,7 @@
 		{
 			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_4",
 			"type": "Microsoft.Resources/deployments",
-			"apiVersion": "2018-02-01",
+			"apiVersion": "2024-03-01",
 			"properties": {
 				"mode": "incremental",
 				"templateLink": {
