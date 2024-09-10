@@ -26,13 +26,6 @@
 						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 						"type": "LinkedServiceReference"
 					},
-					"name": "deliverycapacity"
-				},
-				{
-					"linkedService": {
-						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-						"type": "LinkedServiceReference"
-					},
 					"name": "source1"
 				}
 			],
@@ -51,12 +44,6 @@
 				},
 				{
 					"name": "selectdeliverytype"
-				},
-				{
-					"name": "selectdeliverycapacity"
-				},
-				{
-					"name": "joindeliverycapacity"
 				},
 				{
 					"name": "mergingtimeslots"
@@ -108,23 +95,6 @@
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
 				"source(output(",
 				"          id as integer,",
-				"          supermarket_id as integer,",
-				"          time_slot_id as integer,",
-				"          capacity as integer,",
-				"          is_enabled as boolean,",
-				"          created_at as timestamp,",
-				"          updated_at as timestamp,",
-				"          deleted_at as timestamp",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     format: 'table',",
-				"     tableName: 'delivery_capacity',",
-				"     schemaName: 'public',",
-				"     store: 'postgres',",
-				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
-				"source(output(",
-				"          id as integer,",
 				"          start_time as string,",
 				"          end_time as string,",
 				"          country_id as integer,",
@@ -153,17 +123,6 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
-				"deliverycapacity select(mapColumn(",
-				"          dc_id = id,",
-				"          dc_time_slot_id = time_slot_id",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> selectdeliverycapacity",
-				"joindeliverytype, selectdeliverycapacity join(time_slot_id == dc_id,",
-				"     joinType:'left',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> joindeliverycapacity",
 				"join1 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
 				"mergingtimeslots select(mapColumn(",
 				"          id,",
@@ -181,8 +140,6 @@
 				"          is_delivery_on_hold,",
 				"          processing_start_at,",
 				"          delivery_type_id,",
-				"          dc_id,",
-				"          dc_time_slot_id,",
 				"          formatted_time_slot",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
@@ -194,7 +151,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
-				"joindeliverycapacity, selecttimeslots join(time_slot_id == tc_id,",
+				"joindeliverytype, selecttimeslots join(time_slot_id == tc_id,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
