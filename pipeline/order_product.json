@@ -5,8 +5,6 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.15:00:00",
@@ -19,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "select sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tcoalesce(sli.requested_quantity,0)  as quantity,\n\t\tsli.quantity as picked_quantity,\n\t\tsli.price,\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0\nlimit 1000000;"
+						"query": "select sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tcoalesce(sli.requested_quantity,0)  as quantity,\n\t\tcoalesce(sli.quantity,0) as picked_quantity,\n\t\tcoalesce(sli.price,0.0),\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0\nlimit 1000000;"
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -264,6 +262,8 @@
 			{
 				"name": "Data flow1",
 				"type": "ExecuteDataFlow",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
@@ -295,6 +295,8 @@
 			{
 				"name": "Delete1",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Data flow1",
