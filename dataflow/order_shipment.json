@@ -27,13 +27,6 @@
 						"type": "LinkedServiceReference"
 					},
 					"name": "deliverycapacity"
-				},
-				{
-					"linkedService": {
-						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-						"type": "LinkedServiceReference"
-					},
-					"name": "timeslot"
 				}
 			],
 			"sinks": [
@@ -57,9 +50,6 @@
 				},
 				{
 					"name": "joindeliverycapacity"
-				},
-				{
-					"name": "selecttimeslots"
 				},
 				{
 					"name": "jointimeslot"
@@ -123,25 +113,6 @@
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
-				"source(output(",
-				"          id as integer,",
-				"          start_time as string,",
-				"          end_time as string,",
-				"          country_id as integer,",
-				"          delivery_option_id as integer,",
-				"          day_of_week as string,",
-				"          created_at as timestamp,",
-				"          updated_at as timestamp,",
-				"          deleted_at as timestamp,",
-				"          is_enabled as boolean",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     format: 'table',",
-				"     tableName: 'time_slot',",
-				"     schemaName: 'public',",
-				"     store: 'postgres',",
-				"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
 				"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
@@ -164,14 +135,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joindeliverycapacity",
-				"timeslot select(mapColumn(",
-				"          time_slot_id = id,",
-				"          start_time,",
-				"          end_time",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
-				"joindeliverycapacity, selecttimeslots join(dc_time_slot_id == time_slot_id,",
+				"joindeliverycapacity join(dc_time_slot_id == time_slot_id,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
