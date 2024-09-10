@@ -37,7 +37,7 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "id",
+									"name": "category_id",
 									"type": "Int32",
 									"physicalType": "integer"
 								},
@@ -61,7 +61,7 @@
 							},
 							{
 								"source": {
-									"name": "quantity",
+									"name": "picked_quantity",
 									"type": "Int32",
 									"physicalType": "integer"
 								},
@@ -85,7 +85,7 @@
 							},
 							{
 								"source": {
-									"name": "price",
+									"name": "action_price",
 									"type": "Decimal",
 									"physicalType": "numeric"
 								},
@@ -126,8 +126,7 @@
 									"physicalType": "character varying"
 								},
 								"sink": {
-									"name": "state",
-									"type": "String",
+									"name": "order_state",
 									"physicalType": "UTF8"
 								}
 							},
