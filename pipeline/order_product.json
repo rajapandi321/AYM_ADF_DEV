@@ -37,7 +37,7 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "category_id",
+									"name": "id",
 									"type": "Int32",
 									"physicalType": "integer"
 								},
@@ -85,7 +85,7 @@
 							},
 							{
 								"source": {
-									"name": "action_price",
+									"name": "price",
 									"type": "Decimal",
 									"physicalType": "numeric"
 								},
