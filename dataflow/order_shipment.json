@@ -27,6 +27,13 @@
 						"type": "LinkedServiceReference"
 					},
 					"name": "deliverycapacity"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
 				}
 			],
 			"sinks": [
@@ -52,13 +59,16 @@
 					"name": "joindeliverycapacity"
 				},
 				{
-					"name": "jointimeslot"
-				},
-				{
 					"name": "mergingtimeslots"
 				},
 				{
 					"name": "select1"
+				},
+				{
+					"name": "selecttimeslots"
+				},
+				{
+					"name": "join1"
 				}
 			],
 			"scriptLines": [
@@ -71,7 +81,7 @@
 				"          tax_total as double,",
 				"          total as decimal(38,18),",
 				"          order_type as string,",
-				"          time_slots_schedule_id as integer,",
+				"          time_slot_id as integer,",
 				"          supermarket_id as integer,",
 				"          delivery_date as timestamp,",
 				"          delivery_charges as decimal(38,18),",
@@ -113,6 +123,25 @@
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverycapacity",
+				"source(output(",
+				"          id as integer,",
+				"          start_time as string,",
+				"          end_time as string,",
+				"          country_id as integer,",
+				"          delivery_option_id as integer,",
+				"          day_of_week as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          is_enabled as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'time_slot',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
 				"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
@@ -130,17 +159,12 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectdeliverycapacity",
-				"joindeliverytype, selectdeliverycapacity join(time_slots_schedule_id == dc_id,",
+				"joindeliverytype, selectdeliverycapacity join(time_slot_id == dc_id,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joindeliverycapacity",
-				"joindeliverycapacity join(dc_time_slot_id == time_slot_id,",
-				"     joinType:'left',",
-				"     matchType:'exact',",
-				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> jointimeslot",
-				"jointimeslot derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
+				"join1 derive(formatted_time_slot = concat(start_time,'-',end_time)) ~> mergingtimeslots",
 				"mergingtimeslots select(mapColumn(",
 				"          id,",
 				"          order_id,",
@@ -150,18 +174,31 @@
 				"          tax_total,",
 				"          total,",
 				"          order_type,",
-				"          time_slots_schedule_id,",
+				"          time_slot_id,",
 				"          supermarket_id,",
 				"          delivery_date,",
 				"          delivery_charges,",
 				"          is_delivery_on_hold,",
 				"          processing_start_at,",
 				"          delivery_type_id,",
-				"          time_slot_id = dc_time_slot_id,",
+				"          dc_id,",
+				"          dc_time_slot_id,",
 				"          formatted_time_slot",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
+				"source1 select(mapColumn(",
+				"          tc_id = id,",
+				"          start_time,",
+				"          end_time",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
+				"joindeliverycapacity, selecttimeslots join(time_slot_id == tc_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
 				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
