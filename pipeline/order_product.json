@@ -61,7 +61,7 @@
 							},
 							{
 								"source": {
-									"name": "picked_quantity",
+									"name": "quantity",
 									"type": "Int32",
 									"physicalType": "integer"
 								},
