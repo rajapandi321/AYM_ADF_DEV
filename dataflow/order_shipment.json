@@ -62,7 +62,7 @@
 				"source(output(",
 				"          id as integer,",
 				"          order_id as integer,",
-				"          status as string,",
+				"          order_status as string,",
 				"          created_at as timestamp,",
 				"          updated_at as timestamp,",
 				"          tax_total as double,",
