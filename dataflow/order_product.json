@@ -123,8 +123,6 @@
 				"          order_shipment_id,",
 				"          category_id,",
 				"          status,",
-				"          picked_weight,",
-				"          order_status = select1@status,",
 				"          shipment_status",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
