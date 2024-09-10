@@ -139,17 +139,6 @@
 							},
 							{
 								"source": {
-									"name": "email",
-									"type": "String"
-								},
-								"sink": {
-									"name": "email_verification_key",
-									"type": "String",
-									"physicalType": "text"
-								}
-							},
-							{
-								"source": {
 									"name": "mobile_verified",
 									"type": "Boolean",
 									"physicalType": "boolean"
@@ -162,7 +151,7 @@
 							},
 							{
 								"source": {
-									"name": "password",
+									"name": "password_salt",
 									"type": "String",
 									"physicalType": "character varying"
 								},
