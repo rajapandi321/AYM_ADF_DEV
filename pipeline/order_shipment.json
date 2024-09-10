@@ -59,12 +59,12 @@
 							},
 							{
 								"source": {
-									"name": "status",
+									"name": "order_status",
 									"type": "String",
 									"physicalType": "text"
 								},
 								"sink": {
-									"name": "status",
+									"name": "order_status",
 									"type": "String",
 									"physicalType": "UTF8"
 								}
@@ -193,7 +193,7 @@
 								"source": {
 									"name": "processing_start_at",
 									"type": "DateTime",
-									"physicalType": "timestamp with time zone"
+									"physicalType": "timestamp without time zone"
 								},
 								"sink": {
 									"name": "processing_start_at",
