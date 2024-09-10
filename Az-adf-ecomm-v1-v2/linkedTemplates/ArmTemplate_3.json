@@ -88,6 +88,8 @@
 					{
 						"name": "Copy data1",
 						"type": "Copy",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.15:00:00",
@@ -100,7 +102,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tsli.requested_quantity  as quantity,\n\t\tsli.quantity as picked_quantity,\n\t\tsli.price,\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0;"
+								"query": "select sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tcoalesce(sli.requested_quantity,0)  as quantity,\n\t\tcoalesce(sli.quantity,0) as picked_quantity,\n\t\tcoalesce(sli.price,0.0) as price,\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0\nlimit 1000000;"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -117,6 +119,211 @@
 							"dataIntegrationUnits": 4,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "product_variant_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "product_variant_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "quantity",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "quantity",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "picked_quantity",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "picked_quantity",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "price",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "price",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "replaced",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "replaced",
+											"type": "Boolean",
+											"physicalType": "BOOLEAN"
+										}
+									},
+									{
+										"source": {
+											"name": "state",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "order_state",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp with time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "INT_96"
+										}
+									},
+									{
+										"source": {
+											"name": "action_price",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "action_price",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "sale_price",
+											"type": "Decimal",
+											"physicalType": "numeric"
+										},
+										"sink": {
+											"name": "sale_price",
+											"type": "Decimal",
+											"physicalType": "DECIMAL"
+										}
+									},
+									{
+										"source": {
+											"name": "picker_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "picker_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "product_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "product_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "order_shipment_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "order_shipment_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "replacement_pref",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "replacement_pref",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									},
+									{
+										"source": {
+											"name": "category_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "category_id",
+											"type": "Int32",
+											"physicalType": "INT_32"
+										}
+									},
+									{
+										"source": {
+											"name": "status",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "status",
+											"type": "String",
+											"physicalType": "UTF8"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -142,8 +349,6 @@
 					{
 						"name": "Data flow1",
 						"type": "ExecuteDataFlow",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Copy data1",
@@ -168,7 +373,6 @@
 								"datasetParameters": {
 									"extractorderproduct": {},
 									"ordershipment": {},
-									"orders": {},
 									"writestatusbacktodb": {}
 								}
 							},
@@ -183,8 +387,6 @@
 					{
 						"name": "Delete1",
 						"type": "Delete",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Data flow1",
@@ -388,7 +590,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "with cte as(\n\tselect  ss.id,\n\t\tso.id as order_id,\n\t\tCASE \n            WHEN ss.state = 'shipped' THEN 'delivered'\n            WHEN ss.state = 'pending' THEN 'pending'\n            WHEN ss.state = 'ready' THEN 'picked'\n            WHEN ss.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ss.created_at,\n        ss.updated_at,\n        CAST((so.total*(so.vat_percentage/100)) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n\t\tso.supermarket_id,\n\t\tdsto.time_slots_schedule_id as time_slot_id,\n\t\tsla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n\t\tROW_NUMBER() OVER (PARTITION BY ss.id ORDER BY ss.id) AS rn\n\t\nfrom spree_orders so\nINNER JOIN spree_shipments ss on ss.order_id = so.id\nLEFT JOIN danube_slot_to_orders dsto on dsto.order_id = so.id\nLEFT JOIN spree_lift_assignments sla ON sla.order_id = so.id\nLEFT JOIN spree_adjustments sa ON sa.order_id = so.id AND sa.label = 'Express Fee'\nwhere so.state != 'cart')\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slot_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nwhere rn = 1;"
+								"query": "with cte as(\n\tselect  ss.id,\n\t\tso.id as order_id,\n\t\tCASE \n            WHEN ss.state = 'shipped' THEN 'delivered'\n            WHEN ss.state = 'pending' THEN 'pending'\n            WHEN ss.state = 'ready' THEN 'picked'\n            WHEN ss.state = 'canceled' THEN 'cancelled'\n        END AS status,\n        ss.created_at,\n        ss.updated_at,\n        CAST((so.total*(so.vat_percentage/100)) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n\t\tso.supermarket_id,\n\t\tdsto.time_slots_schedule_id as time_slot_id,\n\t\tsla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        CURRENT_TIMESTAMP AS processing_start_at,\n\t\tROW_NUMBER() OVER (PARTITION BY ss.id ORDER BY ss.id) AS rn\n\t\nfrom spree_orders so\nLEFT JOIN spree_shipments ss on ss.order_id = so.id\nLEFT JOIN danube_slot_to_orders dsto on dsto.order_id = so.id\nLEFT JOIN spree_lift_assignments sla ON sla.order_id = so.id\nLEFT JOIN spree_adjustments sa ON sa.order_id = so.id AND sa.label = 'Express Fee'\nwhere so.state != 'cart')\nSELECT \n    id,\n    order_id,\n    status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slot_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nwhere rn = 1;"
 							},
 							"sink": {
 								"type": "ParquetSink",
