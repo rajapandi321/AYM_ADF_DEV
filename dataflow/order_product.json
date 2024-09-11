@@ -137,7 +137,7 @@
 				"selectingmandatoryfields derive(status = iif(picked_quantity >= quantity, 'picked',\r",
 				"    iif(equals(replaced, true()), 'replaced',\r",
 				"        iif(and(equals(shipment_status, 'pending'), equals(picked_quantity, 0)), 'pending',\r",
-				"            iif(equals(picked_quantity, 0) && isNull(replaced), 'issue', '')\r",
+				"            iif(equals(state,'complete') && equals(picked_quantity, 0) && isNull(replaced), 'issue', '')\r",
 				"        )\r",
 				"    )\r",
 				")) ~> addingstatuscondition",
