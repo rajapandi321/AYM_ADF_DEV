@@ -66,16 +66,18 @@
 						"          id as integer,",
 						"          product_variant_id as integer,",
 						"          quantity as integer,",
+						"          picked_weight as integer,",
 						"          picked_quantity as integer,",
 						"          price as decimal(38,18),",
 						"          created_at as timestamp,",
 						"          replaced as boolean,",
-						"          order_state as string,",
+						"          state as string,",
 						"          updated_at as timestamp,",
 						"          action_price as decimal(38,18),",
 						"          sale_price as decimal(38,18),",
 						"          picker_id as integer,",
 						"          product_id as integer,",
+						"          delivery_instruction as string,",
 						"          order_shipment_id as integer,",
 						"          replacement_pref as string,",
 						"          category_id as integer,",
@@ -126,28 +128,32 @@
 						"          id,",
 						"          product_variant_id,",
 						"          quantity,",
+						"          picked_weight,",
+						"          picked_quantity,",
 						"          price,",
 						"          created_at,",
 						"          replaced,",
+						"          state,",
 						"          updated_at,",
 						"          action_price,",
 						"          sale_price,",
-						"          product_id,",
-						"          replacement_pref,",
-						"          picked_quantity,",
 						"          picker_id,",
+						"          product_id,",
+						"          delivery_instruction,",
 						"          order_shipment_id,",
+						"          replacement_pref,",
 						"          category_id,",
 						"          status,",
+						"          shipment_id,",
 						"          shipment_status,",
-						"          order_state",
+						"          order_id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> selectingmandatoryfields",
 						"selectingmandatoryfields derive(status = iif(picked_quantity >= quantity, 'picked',\r",
 						"    iif(equals(replaced, true()), 'replaced',\r",
 						"        iif(and(equals(shipment_status, 'pending'), equals(picked_quantity, 0)), 'pending',\r",
-						"            iif(equals(order_state, 'complete') && equals(picked_quantity, 0) && isNull(replaced), 'issue', '')\r",
+						"            iif(equals(state,'complete') && equals(picked_quantity, 0) && isNull(replaced), 'issue', '')\r",
 						"        )\r",
 						"    )\r",
 						")) ~> addingstatuscondition",
@@ -184,8 +190,7 @@
 						"          product_report_id as integer,",
 						"          picked_weight as double,",
 						"          replaced_by as integer,",
-						"          meta as string,",
-						"          replaced as boolean",
+						"          meta as string",
 						"     ),",
 						"     format: 'table',",
 						"     tableName: 'order_product',",
@@ -212,7 +217,9 @@
 						"          order_shipment_id,",
 						"          product_variant_id,",
 						"          category_id,",
-						"          sale_price",
+						"          delivery_instruction,",
+						"          sale_price,",
+						"          picked_weight",
 						"     )) ~> writestatusbacktodb"
 					]
 				}
@@ -285,7 +292,7 @@
 						"source(output(",
 						"          id as integer,",
 						"          order_id as integer,",
-						"          status as string,",
+						"          order_status as string,",
 						"          created_at as timestamp,",
 						"          updated_at as timestamp,",
 						"          tax_total as double,",
@@ -351,7 +358,7 @@
 						"mergingtimeslots select(mapColumn(",
 						"          id,",
 						"          order_id,",
-						"          status,",
+						"          order_status,",
 						"          created_at,",
 						"          updated_at,",
 						"          tax_total,",
@@ -420,7 +427,7 @@
 						"     mapColumn(",
 						"          id,",
 						"          order_id,",
-						"          status,",
+						"          status = order_status,",
 						"          created_at,",
 						"          updated_at,",
 						"          tax_total,",
@@ -1094,7 +1101,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tu.spree_api_key as api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as is_blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id;"
+								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -1252,7 +1259,7 @@
 									},
 									{
 										"source": {
-											"name": "is_blacklisted",
+											"name": "blacklisted",
 											"type": "Boolean",
 											"physicalType": "boolean"
 										},
@@ -1260,6 +1267,18 @@
 											"name": "is_blacklisted",
 											"type": "Boolean",
 											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "spree_api_key",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "spree_api_key",
+											"type": "String",
+											"physicalType": "character varying"
 										}
 									}
 								],
