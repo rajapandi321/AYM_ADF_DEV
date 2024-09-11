@@ -188,7 +188,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     mapColumn(",
 				"          id,",
-				"          quantity = product_id,",
+				"          product_id,",
 				"          quantity,",
 				"          price,",
 				"          action_price,",
@@ -202,7 +202,8 @@
 				"          product_variant_id,",
 				"          category_id,",
 				"          delivery_instruction,",
-				"          sale_price",
+				"          sale_price,",
+				"          picked_weight",
 				"     )) ~> writestatusbacktodb"
 			]
 		}
