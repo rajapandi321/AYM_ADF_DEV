@@ -184,7 +184,7 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     mapColumn(",
 				"          id,",
-				"          product_id,",
+				"          quantity = product_id,",
 				"          quantity,",
 				"          price,",
 				"          action_price,",

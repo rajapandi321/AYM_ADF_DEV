@@ -5,8 +5,6 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.15:00:00",
@@ -19,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "WITH delivery_instructions AS (\n    SELECT \n        sli.line_item_id,\n        CONCAT('Preferred Cut - ', COALESCE(spc.name, ''), '::', STRING_AGG(CONCAT(' ', COALESCE(scp.name_en, ''), ' ', round(sli.quantity/1000.0,2), ' ', 'kg'), ', '), STRING_AGG(CONCAT(' ',COALESCE(scp.name_ar, ''), ' ', round(sli.quantity/1000.0,2), ' ', 'kg'), ', ')\n        ) AS delivery_instruction\n    FROM spree_line_item_cut_patterns sli\n    LEFT JOIN spree_cut_patterns scp ON scp.id = sli.cut_pattern_id \n    LEFT JOIN spree_preferred_cuts spc ON spc.id = scp.preferred_cut_id\n\twhere sli.quantity > 0\n    GROUP BY sli.line_item_id,spc.name\n    ORDER BY sli.line_item_id\n)\nselect sli.id,\n\t\tsli.variant_id as product_variant_id,\n\t\tsli.requested_quantity  as quantity,\n\t\tsli.quantity as picked_quantity,\n\t\tsli.price,\n        sli.created_at,\n        sli.replaced,\n\t\tso.state,\n\t\tCOALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n\t\tCASE \n            WHEN sli.on_sale = false THEN sli.price\n            ELSE '0.0'\n        END AS action_price,\n        CASE \n            WHEN sli.on_sale = true THEN sli.price\n            ELSE '0'\n        END AS sale_price,\n\t\t0 AS picker_id,\n\t\tsv.product_id,\n\t\tdi.delivery_instruction,\n\t\tCOALESCE(siu.shipment_id,0) as order_shipment_id,\n\t\tCASE\n            WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n            WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n            ELSE NULL\n        END AS replacement_pref,\n\t\t1 AS category_id,\n\t\t'' AS status\n\t\t\nfrom spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n        SELECT DISTINCT ON (line_item_id) * \n        FROM spree_inventory_units\n    ) siu ON siu.line_item_id = sli.id\nLEFT JOIN delivery_instructions di on sli.id = di.line_item_id\nwhere (so.state = 'complete' or so.state  = 'delivered') and sli.quantity = 0;"
+						"query": "WITH delivery_instructions AS (\n    SELECT \n        sli.line_item_id,\n        CONCAT(\n            'Preferred Cut - ', COALESCE(spc.name, ''), '::', \n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_en, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', '), \n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_ar, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', ')\n        ) AS delivery_instruction\n    FROM spree_line_item_cut_patterns sli\n    LEFT JOIN spree_cut_patterns scp ON scp.id = sli.cut_pattern_id \n    LEFT JOIN spree_preferred_cuts spc ON spc.id = scp.preferred_cut_id\n    WHERE sli.quantity > 0\n    GROUP BY sli.line_item_id, spc.name\n    ORDER BY sli.line_item_id\n)\nSELECT \n    sli.id,\n    sli.variant_id AS product_variant_id,\n    sli.requested_quantity AS quantity,\n    -- Determine picked_weight based on conditions\n    CASE \n        WHEN  sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0 -- weighted product \n        THEN sli.quantity \n        ELSE NULL\n    END AS picked_weight,\n    -- Determine picked_quantity based on conditions\n    COALESCE(\n        CASE \n            WHEN sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0\n                THEN 1\n                ELSE sli.quantity\n        END, 0\n    ) AS picked_quantity,\n    sli.price,\n    sli.created_at,\n    sli.replaced,\n    so.state,\n    COALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n    CASE \n        WHEN sli.on_sale = false THEN sli.price\n        ELSE '0.0'\n    END AS action_price,\n    CASE \n        WHEN sli.on_sale = true THEN sli.price\n        ELSE '0'\n    END AS sale_price,\n    0 AS picker_id,\n    sv.product_id,\n    di.delivery_instruction,\n    COALESCE(siu.shipment_id, 0) AS order_shipment_id,\n    CASE\n        WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n        WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n        ELSE NULL\n    END AS replacement_pref,\n    1 AS category_id,\n    '' AS status\nFROM spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n    SELECT DISTINCT ON (line_item_id) * \n    FROM spree_inventory_units\n) siu ON siu.line_item_id = sli.id\nLEFT JOIN delivery_instructions di ON sli.id = di.line_item_id\nWHERE (so.state = 'complete' OR so.state = 'delivered') AND sli.quantity = 0;"
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -39,9 +37,7 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "id",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "id",
@@ -51,9 +47,7 @@
 							},
 							{
 								"source": {
-									"name": "product_variant_id",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "product_variant_id",
@@ -63,9 +57,7 @@
 							},
 							{
 								"source": {
-									"name": "quantity",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "quantity",
@@ -75,9 +67,7 @@
 							},
 							{
 								"source": {
-									"name": "picked_quantity",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "picked_quantity",
@@ -87,9 +77,7 @@
 							},
 							{
 								"source": {
-									"name": "price",
-									"type": "Decimal",
-									"physicalType": "numeric"
+									"name": ""
 								},
 								"sink": {
 									"name": "price",
@@ -99,9 +87,7 @@
 							},
 							{
 								"source": {
-									"name": "created_at",
-									"type": "DateTime",
-									"physicalType": "timestamp without time zone"
+									"name": ""
 								},
 								"sink": {
 									"name": "created_at",
@@ -111,9 +97,7 @@
 							},
 							{
 								"source": {
-									"name": "replaced",
-									"type": "Boolean",
-									"physicalType": "boolean"
+									"name": ""
 								},
 								"sink": {
 									"name": "replaced",
@@ -123,9 +107,7 @@
 							},
 							{
 								"source": {
-									"name": "state",
-									"type": "String",
-									"physicalType": "character varying"
+									"name": ""
 								},
 								"sink": {
 									"name": "state",
@@ -135,9 +117,7 @@
 							},
 							{
 								"source": {
-									"name": "updated_at",
-									"type": "DateTime",
-									"physicalType": "timestamp with time zone"
+									"name": ""
 								},
 								"sink": {
 									"name": "updated_at",
@@ -147,9 +127,7 @@
 							},
 							{
 								"source": {
-									"name": "action_price",
-									"type": "Decimal",
-									"physicalType": "numeric"
+									"name": ""
 								},
 								"sink": {
 									"name": "action_price",
@@ -159,9 +137,7 @@
 							},
 							{
 								"source": {
-									"name": "sale_price",
-									"type": "Decimal",
-									"physicalType": "numeric"
+									"name": ""
 								},
 								"sink": {
 									"name": "sale_price",
@@ -171,9 +147,7 @@
 							},
 							{
 								"source": {
-									"name": "picker_id",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "picker_id",
@@ -183,9 +157,7 @@
 							},
 							{
 								"source": {
-									"name": "product_id",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "product_id",
@@ -195,9 +167,7 @@
 							},
 							{
 								"source": {
-									"name": "delivery_instruction",
-									"type": "String",
-									"physicalType": "text"
+									"name": ""
 								},
 								"sink": {
 									"name": "delivery_instruction",
@@ -207,9 +177,7 @@
 							},
 							{
 								"source": {
-									"name": "order_shipment_id",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "order_shipment_id",
@@ -219,9 +187,7 @@
 							},
 							{
 								"source": {
-									"name": "replacement_pref",
-									"type": "String",
-									"physicalType": "text"
+									"name": ""
 								},
 								"sink": {
 									"name": "replacement_pref",
@@ -231,9 +197,7 @@
 							},
 							{
 								"source": {
-									"name": "category_id",
-									"type": "Int32",
-									"physicalType": "integer"
+									"name": ""
 								},
 								"sink": {
 									"name": "category_id",
@@ -243,9 +207,7 @@
 							},
 							{
 								"source": {
-									"name": "status",
-									"type": "String",
-									"physicalType": "text"
+									"name": ""
 								},
 								"sink": {
 									"name": "status",
@@ -277,6 +239,8 @@
 			{
 				"name": "Data flow1",
 				"type": "ExecuteDataFlow",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
@@ -308,6 +272,8 @@
 			{
 				"name": "Delete1",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Data flow1",
