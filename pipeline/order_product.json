@@ -126,7 +126,8 @@
 									"physicalType": "character varying"
 								},
 								"sink": {
-									"name": "order_state",
+									"name": "state",
+									"type": "String",
 									"physicalType": "UTF8"
 								}
 							},
@@ -188,6 +189,18 @@
 									"name": "product_id",
 									"type": "Int32",
 									"physicalType": "INT_32"
+								}
+							},
+							{
+								"source": {
+									"name": "delivery_instruction",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "delivery_instruction",
+									"type": "String",
+									"physicalType": "UTF8"
 								}
 							},
 							{
