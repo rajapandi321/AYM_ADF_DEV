@@ -170,8 +170,7 @@
 				"          product_report_id as integer,",
 				"          picked_weight as double,",
 				"          replaced_by as integer,",
-				"          meta as string,",
-				"          replaced as boolean",
+				"          meta as string",
 				"     ),",
 				"     format: 'table',",
 				"     tableName: 'order_product',",
@@ -198,6 +197,7 @@
 				"          order_shipment_id,",
 				"          product_variant_id,",
 				"          category_id,",
+				"          delivery_instruction,",
 				"          sale_price",
 				"     )) ~> writestatusbacktodb"
 			]
