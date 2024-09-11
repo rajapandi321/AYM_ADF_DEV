@@ -50,6 +50,7 @@
 				"          id as integer,",
 				"          product_variant_id as integer,",
 				"          quantity as integer,",
+				"          picked_weight as integer,",
 				"          picked_quantity as integer,",
 				"          price as decimal(38,18),",
 				"          created_at as timestamp,",
