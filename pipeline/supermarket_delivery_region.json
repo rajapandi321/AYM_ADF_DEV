@@ -171,14 +171,7 @@
 			{
 				"name": "Copy data2",
 				"type": "Copy",
-				"dependsOn": [
-					{
-						"activity": "Copy data1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -349,7 +342,14 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Copy data2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -361,7 +361,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "ALTER SEQUENCE supermarket_delivery_region_id_seq RESTART WITH 1;\nSelect 'Reset Super Market' As Update;",
+						"query": "DO $$ \nDECLARE\n    max_id INTEGER;\nBEGIN\n    -- Get the maximum id from the supermarket_delivery_region table\n    SELECT max(id) INTO max_id FROM supermarket_delivery_region;\n    \n    -- Restart the sequence with the max_id + 1\n    EXECUTE 'ALTER SEQUENCE supermarket_delivery_region_id_seq RESTART WITH ' || (max_id + 1);\nEND $$;\n\nSelect 'Reset Super Market' As Update;",
 						"partitionOption": "None"
 					},
 					"dataset": {
