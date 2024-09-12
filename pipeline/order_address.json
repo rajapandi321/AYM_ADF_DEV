@@ -32,6 +32,18 @@
 						"mappings": [
 							{
 								"source": {
+									"name": "id",
+									"type": "Int64",
+									"physicalType": "bigint"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
 									"name": "order_id",
 									"type": "Int32",
 									"physicalType": "integer"
@@ -153,8 +165,8 @@
 							{
 								"source": {
 									"name": "postal_code",
-									"type": "String",
-									"physicalType": "character varying"
+									"type": "Int32",
+									"physicalType": "integer"
 								},
 								"sink": {
 									"name": "postal_code",
