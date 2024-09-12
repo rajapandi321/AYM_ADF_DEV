@@ -30,6 +30,11 @@
 						"type": "TabularTranslator",
 						"mappings": [
 							{
+								"source": {
+									"name": "id",
+									"type": "Int64",
+									"physicalType": "bigint"
+								},
 								"sink": {
 									"name": "id",
 									"type": "Int32",
