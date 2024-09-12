@@ -200,18 +200,6 @@
 									"type": "DateTime",
 									"physicalType": "INT_96"
 								}
-							},
-							{
-								"source": {
-									"name": "row_num",
-									"type": "Int64",
-									"physicalType": "bigint"
-								},
-								"sink": {
-									"name": "row_num",
-									"type": "Int64",
-									"physicalType": "INT_64"
-								}
 							}
 						],
 						"typeConversion": true,
