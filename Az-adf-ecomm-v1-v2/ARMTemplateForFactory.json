@@ -1425,7 +1425,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select distinct lower(sst.name) as name,\n\t\t ss.country_id,\n\t\t ss.created_at,\n\t\tss.updated_at,\n    \ttrue AS is_visible,\n    \tds.state_id\nfrom danube_supermarkets ds \njoin spree_states ss on ss.id = ds.state_id \njoin spree_state_translations sst on sst.spree_state_id = ss.id and sst.locale = 'en';"
+								"query": "select distinct lower(sst.name) as name,\n\t\tROW_NUMBER() over () as id,\n\t\t ss.country_id,\n\t\t ss.created_at,\n\t\tss.updated_at,\n    \ttrue AS is_visible,\n    \tds.state_id\nfrom danube_supermarkets ds \njoin spree_states ss on ss.id = ds.state_id \njoin spree_state_translations sst on sst.spree_state_id = ss.id and sst.locale = 'en';"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -1436,6 +1436,92 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "country_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_visible",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "state_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "state_id",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -8597,7 +8683,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n  id AS super_market_id,\n  payment_id,\n  delivery_option_id\nFROM (\n  SELECT\n    id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*home_delivery:(.*)$', '\\1'), 'store_pick_up:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '1' AS delivery_option_id -- Home Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%home_delivery%'\n  UNION ALL\n  SELECT\n    id AS super_market_id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*store_pick_up:(.*)$', '\\1'), 'home_delivery:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '2' AS delivery_option_id -- Store Pickup Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%store_pick_up%'\n) AS subquery_alias\nORDER BY super_market_id;"
+								"query": "SELECT\n  ROW_NUMBER() over () as id,\n  id AS super_market_id,\n  payment_id,\n  delivery_option_id\nFROM (\n  SELECT\n    id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*home_delivery:(.*)$', '\\1'), 'store_pick_up:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '1' AS delivery_option_id -- Home Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%home_delivery%'\n  UNION ALL\n  SELECT\n    id AS super_market_id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*store_pick_up:(.*)$', '\\1'), 'home_delivery:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '2' AS delivery_option_id -- Store Pickup Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%store_pick_up%'\n) AS subquery_alias\nORDER BY super_market_id;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -8608,6 +8694,56 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "super_market_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "super_market_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "payment_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "payment_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "delivery_option_id",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "delivery_option_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -9075,7 +9211,14 @@
 					{
 						"name": "Copy data1",
 						"type": "Copy",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -9087,7 +9230,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT\n    supermarket_id,\n    2 AS delivery_type_id,\n    (\n        SELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(coverage)::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_X(ST_AsText(center)) AS center_longitude,\n    ST_Y(ST_AsText(center)) AS center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM\n    danube_express_supermarkets;"
+								"query": "SELECT\n    ROW_NUMBER() over () as id,\n    supermarket_id,\n    2 AS delivery_type_id,\n    (\n        SELECT\n            ('[' || string_agg(format('[%s,%s]', coordinate->1, coordinate->0), ',') || ']')::json\n        FROM (\n            SELECT json_array_elements((ST_AsGeoJSON(coverage)::json->'coordinates')->0) AS coordinate\n        ) AS flattened\n    ) AS delivery_region,\n    ST_X(ST_AsText(center)) AS center_longitude,\n    ST_Y(ST_AsText(center)) AS center_latitude,\n    '#DEE513' AS fill_color,\n    0.5 AS fill_color_opacity,\n    '#5704FC' AS border_color,\n    2 AS border_width\nFROM\n    danube_express_supermarkets;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -9235,14 +9378,7 @@
 					{
 						"name": "Copy data2",
 						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
+						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -9266,6 +9402,18 @@
 							"translator": {
 								"type": "TabularTranslator",
 								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
 									{
 										"source": {
 											"name": "supermarket_id",
@@ -9398,6 +9546,41 @@
 								}
 							}
 						]
+					},
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Copy data2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "DO $$ \nDECLARE\n    max_id INTEGER;\nBEGIN\n    -- Get the maximum id from the supermarket_delivery_region table\n    SELECT max(id) INTO max_id FROM supermarket_delivery_region;\n    \n    -- Restart the sequence with the max_id + 1\n    EXECUTE 'ALTER SEQUENCE supermarket_delivery_region_id_seq RESTART WITH ' || (max_id + 1);\nEND $$;\n\nSelect 'Reset Super Market' As Update;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supermarket_delivery_region"
+								}
+							},
+							"firstRowOnly": false
+						}
 					}
 				],
 				"policy": {
