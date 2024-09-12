@@ -421,7 +421,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
+								"query": "SELECT \n    ROW_NUMBER() OVER() as id,\n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -433,6 +433,18 @@
 							"translator": {
 								"type": "TabularTranslator",
 								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
 									{
 										"source": {
 											"name": "is_deleted",
@@ -4206,7 +4218,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    distinct a.id,\n    a.item_total,\n    a.total,\n    CASE\n        WHEN a.state='delivery' THEN 'delivered'\n        WHEN a.state='picking_and_staging_in_progress' THEN 'pending'\n        WHEN a.state='payment' THEN 'pending'\n        WHEN a.state='complete' THEN 'completed'\n        WHEN a.state='confirm' THEN 'pending'\n--         WHEN a.state='cart' THEN 'pending'\n        WHEN a.state='canceled' THEN 'customer_cancelled'\n    END AS status,\n    a.user_id,\n    a.completed_at,\n    a.bill_address_id,\n    a.ship_address_id,\n    a.payment_total,\n    a.created_at,\n    a.updated_at,\n    a.currency,\n    a.item_count,\n    c.cancel_reason,\n    a.canceled_at as cancelled_at,\n    a.canceler_id as cancelled_by,\n\tCASE WHEN a.delivery_method='home_delivery' THEN 1\n\tWHEN a.delivery_method='store_pick_up' THEN 2\n\tELSE NULL END as delivery_option_id,\n    COALESCE(e.country_id,'1') as country_id,\n    sp_max.payment_method_id as payment_option_id,\n\te.city,\n    1 as language_id\nFROM spree_orders a\nLEFT JOIN spree_shipping_methods b ON b.name = a.delivery_method\nLEFT JOIN spree_fulfilments c ON c.order_id = a.id\nLEFT JOIN spree_user_addresses d ON d.user_id = a.user_id AND d.default = 'true'\nLEFT JOIN spree_addresses e ON e.id = d.address_id \t\t\t\t\t\t\t\t\nLEFT JOIN LATERAL (\n    SELECT *\n    FROM spree_payments sp\n    LEFT JOIN spree_payment_methods spm ON spm.id = sp.payment_method_id\n    WHERE sp.order_id = a.id\n\t AND (\n\t\t (SELECT COUNT(*) FROM spree_payments WHERE order_id = a.id) <= 1 OR\n\t\tspm.type NOT IN ('Spree::Gateway::LoyaltyPoint', 'Spree::PaymentMethod::StoreCredit')\n\t )\n    ORDER BY sp.created_at DESC \n    LIMIT 1\n) sp_max ON true\nwhere a.state != 'cart'\norder by a.id;"
+								"query": "SELECT distinct\n    so.id,\n    so.item_total,\n    so.total,\n    CASE\n        WHEN so.state='delivery' THEN 'delivered'\n        WHEN so.state='picking_and_staging_in_progress' THEN 'pending'\n        WHEN so.state='payment' THEN 'pending'\n        WHEN so.state='complete' THEN 'completed'\n        WHEN so.state='confirm' THEN 'pending'\n--         WHEN so.state='cart' THEN 'pending'\n        WHEN so.state='canceled' THEN 'customer_cancelled'\n    END AS status,\n    so.user_id,\n    so.completed_at,\n    so.bill_address_id,\n    so.ship_address_id,\n    so.payment_total,\n    so.created_at,\n    so.updated_at,\n    so.currency,\n    so.item_count,\n\tso.canceled_at as cancelled_at,\n    so.canceler_id as cancelled_by,\n\tCASE WHEN so.delivery_method='home_delivery' THEN 1\n\tWHEN so.delivery_method='store_pick_up' THEN 2\n\tELSE NULL END as delivery_option_id,\n\tc.cancel_reason,\n\te.city,\n    1 as language_id,\n\tCOALESCE(e.country_id,'1') as country_id,\n\tsp_max.payment_method_id as payment_option_id\n\t\nfrom spree_orders so\nLEFT JOIN spree_fulfilments c ON c.order_id = so.id\nLEFT JOIN spree_user_addresses d ON d.user_id = so.user_id AND d.default = 'true'\nLEFT JOIN spree_addresses e ON e.id = d.address_id\nLEFT JOIN LATERAL (\n    SELECT *\n    FROM spree_payments sp\n    LEFT JOIN spree_payment_methods spm ON spm.id = sp.payment_method_id\n    WHERE sp.order_id = so.id\n\t AND (\n\t\t (SELECT COUNT(*) FROM spree_payments WHERE order_id = so.id) <= 1 OR\n\t\tspm.type NOT IN ('Spree::Gateway::LoyaltyPoint', 'Spree::PaymentMethod::StoreCredit')\n\t )\n    ORDER BY sp.created_at DESC \n    LIMIT 1\n) sp_max ON true\nwhere so.state != 'cart'"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -4351,7 +4363,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select \n\tso.id as order_id,\n\tso.bill_address_id as address_id,\n\t'true' as is_bill_address,\n \tCOALESCE(sa.city,'') as city,\n \tCOALESCE(con.name,'') as country,\n    sdtrans.name as district, \n\t'other' as type,\n\tCONCAT(sa.address1, ' ', sa.address2) AS formatted_address,\n \tCOALESCE(sa.latitude,'0.0') as latitude,\n \tCOALESCE(sa.longitude,'0.0') as longitude,\n\tCASE \n        WHEN sa.zipcode ~ '^[0-9]+$' THEN CAST(sa.zipcode AS INT)\n        ELSE NULL\n    END as postal_code,\n\tso.special_instructions as delivery_instruction,\n\tso.created_at,\n\tso.updated_at\nfrom spree_orders so\nleft join spree_addresses sa on sa.id = so.bill_address_id\nleft join spree_countries con on con.id=sa.country_id\nleft join spree_districts dist on dist.id=sa.district_id \nleft join spree_district_translations sdtrans on sdtrans.spree_district_id = dist.id and sdtrans.locale='en'\nwhere so.state != 'cart'\n\nUNION ALL\n\nselect \n\tso.id as order_id,\n\tso.ship_address_id as address_id,\n\t'false' as is_bill_address,\n \tCOALESCE(sa.city,'') as city,\n \tCOALESCE(con.name,'') as country,\n    sdtrans.name as district, \n\t'other' as type,\n\tCONCAT(sa.address1, ' ', sa.address2) AS formatted_address,\n \tCOALESCE(sa.latitude,'0.0') as latitude,\n \tCOALESCE(sa.longitude,'0.0') as longitude,\n\tCASE \n        WHEN sa.zipcode ~ '^[0-9]+$' THEN CAST(sa.zipcode AS INT)\n        ELSE NULL\n    END as postal_code,\n\tso.special_instructions as delivery_instruction,\n\tso.created_at,\n\tso.updated_at\nfrom spree_orders so\nleft join spree_addresses sa on sa.id = so.ship_address_id\nleft join spree_countries con on con.id=sa.country_id\nleft join spree_districts dist on dist.id=sa.district_id\nleft join spree_district_translations sdtrans on sdtrans.spree_district_id = dist.id and sdtrans.locale='en'\nwhere so.state != 'cart'"
+								"query": "select \n\tROW_NUMBER() over () as id,\n\tso.id as order_id,\n\tso.bill_address_id as address_id,\n\t'true' as is_bill_address,\n \tCOALESCE(sa.city,'') as city,\n \tCOALESCE(con.name,'') as country,\n    sdtrans.name as district, \n\t'other' as type,\n\tCONCAT(sa.address1, ' ', sa.address2) AS formatted_address,\n \tCOALESCE(sa.latitude,'0.0') as latitude,\n \tCOALESCE(sa.longitude,'0.0') as longitude,\n\tCASE \n        WHEN sa.zipcode ~ '^[0-9]+$' THEN CAST(sa.zipcode AS INT)\n        ELSE NULL\n    END as postal_code,\n\tso.special_instructions as delivery_instruction,\n\tso.created_at,\n\tso.updated_at\nfrom spree_orders so\nleft join spree_addresses sa on sa.id = so.bill_address_id\nleft join spree_countries con on con.id=sa.country_id\nleft join spree_districts dist on dist.id=sa.district_id \nleft join spree_district_translations sdtrans on sdtrans.spree_district_id = dist.id and sdtrans.locale='en'\nwhere so.state != 'cart'\n\nUNION ALL\n\nselect \n\tROW_NUMBER() over () as id,\n\tso.id as order_id,\n\tso.ship_address_id as address_id,\n\t'false' as is_bill_address,\n \tCOALESCE(sa.city,'') as city,\n \tCOALESCE(con.name,'') as country,\n    sdtrans.name as district, \n\t'other' as type,\n\tCONCAT(sa.address1, ' ', sa.address2) AS formatted_address,\n \tCOALESCE(sa.latitude,'0.0') as latitude,\n \tCOALESCE(sa.longitude,'0.0') as longitude,\n\tCASE \n        WHEN sa.zipcode ~ '^[0-9]+$' THEN CAST(sa.zipcode AS INT)\n        ELSE NULL\n    END as postal_code,\n\tso.special_instructions as delivery_instruction,\n\tso.created_at,\n\tso.updated_at\nfrom spree_orders so\nleft join spree_addresses sa on sa.id = so.ship_address_id\nleft join spree_countries con on con.id=sa.country_id\nleft join spree_districts dist on dist.id=sa.district_id\nleft join spree_district_translations sdtrans on sdtrans.spree_district_id = dist.id and sdtrans.locale='en'\nwhere so.state != 'cart'"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -4364,6 +4376,18 @@
 							"translator": {
 								"type": "TabularTranslator",
 								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
 									{
 										"source": {
 											"name": "order_id",
@@ -4487,8 +4511,8 @@
 									{
 										"source": {
 											"name": "postal_code",
-											"type": "String",
-											"physicalType": "character varying"
+											"type": "Int32",
+											"physicalType": "integer"
 										},
 										"sink": {
 											"name": "postal_code",
@@ -5135,7 +5159,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "WITH delivery_instructions AS (\n    SELECT \n        sli.line_item_id,\n        CONCAT(\n            'Preferred Cut - ', COALESCE(spc.name, ''), '::', \n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_en, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', '), \n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_ar, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', ')\n        ) AS delivery_instruction\n    FROM spree_line_item_cut_patterns sli\n    LEFT JOIN spree_cut_patterns scp ON scp.id = sli.cut_pattern_id \n    LEFT JOIN spree_preferred_cuts spc ON spc.id = scp.preferred_cut_id\n    WHERE sli.quantity > 0\n    GROUP BY sli.line_item_id, spc.name\n    ORDER BY sli.line_item_id\n)\nSELECT \n    sli.id,\n    sli.variant_id AS product_variant_id,\n    coalesce(sli.requested_quantity,0) AS quantity,\n    -- Determine picked_weight based on conditions\n    CASE \n        WHEN  sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0 -- weighted product \n        THEN sli.quantity \n        ELSE NULL\n    END AS picked_weight,\n    -- Determine picked_quantity based on conditions\n    COALESCE(\n        CASE \n            WHEN sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0\n                THEN 1\n                ELSE sli.quantity\n        END, 0\n    ) AS picked_quantity,\n    sli.price,\n    sli.created_at,\n    sli.replaced,\n    so.state,\n    COALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n    CASE \n        WHEN sli.on_sale = false THEN sli.price\n        ELSE '0.0'\n    END AS action_price,\n    CASE \n        WHEN sli.on_sale = true THEN sli.price\n        ELSE '0'\n    END AS sale_price,\n    0 AS picker_id,\n    sv.product_id,\n    di.delivery_instruction,\n    COALESCE(siu.shipment_id, 0) AS order_shipment_id,\n    CASE\n        WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n        WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n        ELSE NULL\n    END AS replacement_pref,\n    1 AS category_id,\n    '' AS status\nFROM spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN (\n    SELECT DISTINCT ON (line_item_id) * \n    FROM spree_inventory_units\n) siu ON siu.line_item_id = sli.id\nLEFT JOIN delivery_instructions di ON sli.id = di.line_item_id\nWHERE (so.state = 'complete' OR so.state = 'delivered') AND sli.quantity = 0;"
+								"query": "WITH delivery_instructions AS (\n    SELECT \n        sli.line_item_id,\n        CONCAT(\n            'Preferred Cut - ', COALESCE(spc.name, ''), '::', \n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_en, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', '), \n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_ar, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', ')\n        ) AS delivery_instruction\n    FROM spree_line_item_cut_patterns sli\n    LEFT JOIN spree_cut_patterns scp ON scp.id = sli.cut_pattern_id \n    LEFT JOIN spree_preferred_cuts spc ON spc.id = scp.preferred_cut_id\n    WHERE sli.quantity > 0\n    GROUP BY sli.line_item_id, spc.name\n    ORDER BY sli.line_item_id\n)\nSELECT \n    sli.id,\n    sli.variant_id AS product_variant_id,\n    CASE \n        WHEN  sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0 -- weighted product \n        then\n          case\n           when sli.requested_quantity < sv.weight_increment and sli.requested_quantity >0\n           \tthen sv.weight_increment  / sli.requested_quantity\n            else sli.requested_quantity /sv.weight_increment \n            end\n        ELSE sli.requested_quantity \n    END AS quantity,\n    -- Determine picked_weight based on conditions\n    CASE \n        WHEN  sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0 -- weighted product \n        THEN sli.quantity \n        ELSE NULL\n    END AS picked_weight,\n    -- Determine picked_quantity based on conditions\n    COALESCE(\n        CASE \n            WHEN sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0\n                THEN 1\n                ELSE sli.quantity\n        END, 0\n    ) AS picked_quantity,\n    sli.price,\n    sli.created_at,\n    sli.replaced,\n    so.state,\n    COALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\n    CASE \n        WHEN sli.on_sale = false THEN sli.price\n        ELSE '0.0'\n    END AS action_price,\n    CASE \n        WHEN sli.on_sale = true THEN sli.price\n        ELSE '0'\n    END AS sale_price,\n    0 AS picker_id,\n    sv.product_id,\n    di.delivery_instruction,\n    sli.order_id AS order_shipment_id,\n    CASE\n        WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \n        WHEN so.replace_product::varchar = 'false' THEN 'cancel'\n        ELSE NULL\n    END AS replacement_pref,\n    1 AS category_id,\n    '' AS status\nFROM spree_line_items sli\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\nLEFT JOIN spree_orders so ON so.id = sli.order_id\nLEFT JOIN delivery_instructions di ON sli.id = di.line_item_id\n-- left join spree_product_translations spt on spt.spree_product_id = sv.product_id and spt.locale = 'en'\nWHERE so.state != 'cart' and sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0\nand sli.requested_quantity < sv.weight_increment\norder by sli.id desc;"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -5655,7 +5679,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "with cte as(\n\tselect  \n        so.id as id,                        --shipment_id \n\t\tso.id as order_id,\n        CASE\n        WHEN so.state='delivery' THEN 'delivered'\n        WHEN so.state='picking_and_staging_in_progress' THEN 'pending'\n        WHEN so.state='payment' THEN 'pending'\n        WHEN so.state='complete' THEN 'completed'\n        WHEN so.state='confirm' THEN 'pending'\n--      WHEN a.state='cart' THEN 'pending'\n        WHEN so.state='canceled' THEN 'customer_cancelled'\n        END AS order_status,\n        so.created_at,\n        so.updated_at,\n        CAST((so.total*(so.vat_percentage/100)) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n\t\tso.supermarket_id,\n\t\tdsto.time_slots_schedule_id as time_slot_id,\n\t\tsla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        so.created_at AS processing_start_at,\n\t\tROW_NUMBER() OVER (PARTITION BY so.id ORDER BY so.id) AS rn\n\t\nfrom spree_orders so\nLEFT JOIN spree_shipments ss on ss.order_id = so.id\nLEFT JOIN danube_slot_to_orders dsto on dsto.order_id = so.id\nLEFT JOIN spree_lift_assignments sla ON sla.order_id = so.id\nLEFT JOIN spree_adjustments sa ON sa.order_id = so.id AND sa.label = 'Express Fee'\nwhere so.state != 'cart')\nSELECT \n    id,\n    order_id,\n    order_status,\n    created_at,\n    updated_at,\n    tax_total,\n    total,\n    order_type,\n    time_slot_id,\n    supermarket_id,\n    delivery_date,\n    delivery_charges,\n    is_delivery_on_hold,\n    processing_start_at\nFROM cte\nwhere rn = 1;"
+								"query": "WITH cte AS (\n    SELECT  \n        so.id AS id,                        -- shipment_id \n        so.id AS order_id,\n        CASE\n            WHEN so.state = 'delivery' THEN 'delivered'\n            WHEN so.state = 'picking_and_staging_in_progress' THEN 'pending'\n            WHEN so.state = 'payment' THEN 'pending'\n            WHEN so.state = 'complete' THEN 'completed'\n            WHEN so.state = 'confirm' THEN 'pending'\n            WHEN so.state = 'canceled' THEN 'customer_cancelled'\n        END AS order_status,\n        so.created_at,\n        so.updated_at,\n        CAST((so.total * (so.vat_percentage / 100)) AS DOUBLE PRECISION) AS tax_total,\n        so.total,\n        so.order_type,\n        so.supermarket_id,\n        dsto.time_slots_schedule_id AS time_slot_id,\n        sla.delivery_date,\n        sa.amount AS delivery_charges,\n        FALSE AS is_delivery_on_hold,\n        so.created_at AS processing_start_at,\n        ROW_NUMBER() OVER (PARTITION BY so.id ORDER BY so.id) AS row_num\n    FROM spree_orders so\n    LEFT JOIN danube_slot_to_orders dsto ON dsto.order_id = so.id\n    LEFT JOIN spree_lift_assignments sla ON sla.order_id = so.id\n    LEFT JOIN spree_adjustments sa ON sa.order_id = so.id AND sa.label = 'Express Fee'\n    WHERE so.state != 'cart'\n)\nSELECT *\nFROM cte\nWHERE row_num =1;"
 							},
 							"sink": {
 								"type": "ParquetSink",
@@ -5769,24 +5793,24 @@
 									},
 									{
 										"source": {
-											"name": "time_slot_id",
+											"name": "supermarket_id",
 											"type": "Int32",
 											"physicalType": "integer"
 										},
 										"sink": {
-											"name": "time_slot_id",
+											"name": "supermarket_id",
 											"type": "Int32",
 											"physicalType": "INT_32"
 										}
 									},
 									{
 										"source": {
-											"name": "supermarket_id",
+											"name": "time_slot_id",
 											"type": "Int32",
 											"physicalType": "integer"
 										},
 										"sink": {
-											"name": "supermarket_id",
+											"name": "time_slot_id",
 											"type": "Int32",
 											"physicalType": "INT_32"
 										}

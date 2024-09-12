@@ -1101,7 +1101,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
+								"query": "SELECT \n    ROW_NUMBER() OVER() as id,\n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -1113,6 +1113,18 @@
 							"translator": {
 								"type": "TabularTranslator",
 								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
 									{
 										"source": {
 											"name": "is_deleted",
