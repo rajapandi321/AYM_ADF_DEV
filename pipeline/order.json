@@ -5,6 +5,8 @@
 			{
 				"name": "order db",
 				"type": "Copy",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "1.12:00:00",
