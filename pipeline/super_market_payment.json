@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT\n  id AS super_market_id,\n  payment_id,\n  delivery_option_id\nFROM (\n  SELECT\n    id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*home_delivery:(.*)$', '\\1'), 'store_pick_up:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '1' AS delivery_option_id -- Home Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%home_delivery%'\n  UNION ALL\n  SELECT\n    id AS super_market_id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*store_pick_up:(.*)$', '\\1'), 'home_delivery:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '2' AS delivery_option_id -- Store Pickup Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%store_pick_up%'\n) AS subquery_alias\nORDER BY super_market_id;"
+						"query": "SELECT\n  ROW_NUMBER() over () as id,\n  id AS super_market_id,\n  payment_id,\n  delivery_option_id\nFROM (\n  SELECT\n    id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*home_delivery:(.*)$', '\\1'), 'store_pick_up:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '1' AS delivery_option_id -- Home Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%home_delivery%'\n  UNION ALL\n  SELECT\n    id AS super_market_id,\n    UNNEST(REGEXP_MATCHES(\n      REPLACE(\n        REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(payment_options::text, '^.*store_pick_up:(.*)$', '\\1'), 'home_delivery:.*$', ''), '\\n', ''),\n        '''(\\d+)''',\n        '\\1'\n      ),\n      '(\\d+)',\n      'g'\n    ))::INTEGER AS payment_id,\n    '2' AS delivery_option_id -- Store Pickup Delivery type id\n  FROM danube_supermarkets\n  WHERE payment_options::text LIKE '%store_pick_up%'\n) AS subquery_alias\nORDER BY super_market_id;"
 					},
 					"sink": {
 						"type": "AzurePostgreSQLSink",
@@ -28,6 +28,51 @@
 					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"sink": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "super_market_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "super_market_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "payment_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "payment_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "delivery_option_id",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "delivery_option_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							}
+						],
 						"typeConversion": true,
 						"typeConversionSettings": {
 							"allowDataTruncation": true,
