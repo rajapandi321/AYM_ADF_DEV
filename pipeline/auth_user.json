@@ -30,6 +30,11 @@
 						"type": "TabularTranslator",
 						"mappings": [
 							{
+								"source": {
+									"name": "id",
+									"type": "Int64",
+									"physicalType": "bigint"
+								},
 								"sink": {
 									"name": "id",
 									"type": "Int32",
@@ -146,17 +151,6 @@
 							},
 							{
 								"source": {
-									"name": "email",
-									"type": "String"
-								},
-								"sink": {
-									"name": "email_verification_key",
-									"type": "String",
-									"physicalType": "text"
-								}
-							},
-							{
-								"source": {
 									"name": "mobile_verified",
 									"type": "Boolean",
 									"physicalType": "boolean"
@@ -169,7 +163,7 @@
 							},
 							{
 								"source": {
-									"name": "password",
+									"name": "password_salt",
 									"type": "String",
 									"physicalType": "character varying"
 								},
