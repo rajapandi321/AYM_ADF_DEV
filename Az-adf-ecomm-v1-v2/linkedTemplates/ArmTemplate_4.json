@@ -892,7 +892,14 @@
 					{
 						"name": "Copy data1",
 						"type": "Copy",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -904,7 +911,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n\tROW_NUMBER() over () as id,\n\t  REGEXP_REPLACE(MAX(COALESCE(spt.supplier_name,'')), '-[0-9]+$', '') AS name,\n-- \t  UPPER(REGEXP_REPLACE(TRANSLATE(MAX(spt.supplier_name), ' ', '_'), '[^a-zA-Z0-9_]', '', 'g')) as code,\n\t  LEFT(COALESCE(spt.code, ''), 10) AS code,\n\t  MAX(spt.created_at) as created_at,\n\t  MAX(spt.updated_at) as updated_at,\n\t  MAX(spt.deleted_at) as deleted_at\n\tFROM \n\t  (SELECT\n\t\tspree_product_id,\n\t\tMAX(CASE WHEN locale = 'en' THEN manufacturer END) as supplier_name,\n\t\tMAX(CASE WHEN locale = 'ar' THEN manufacturer END) as code,\n\t\tMAX(created_at) as created_at,\n\t\tMAX(updated_at) as updated_at,\n\t\tMAX(deleted_at) as deleted_at\n\t  FROM spree_product_translations\n\t  WHERE manufacturer IS NOT NULL\n\t  GROUP BY spree_product_id) as spt\n\tGROUP BY spt.code;"
+								"query": "SELECT \n\t  REGEXP_REPLACE(MAX(COALESCE(spt.supplier_name,'')), '-[0-9]+$', '') AS name,\n-- \t  UPPER(REGEXP_REPLACE(TRANSLATE(MAX(spt.supplier_name), ' ', '_'), '[^a-zA-Z0-9_]', '', 'g')) as code,\n\t  LEFT(COALESCE(spt.code, ''), 10) AS code,\n\t  MAX(spt.created_at) as created_at,\n\t  MAX(spt.updated_at) as updated_at,\n\t  MAX(spt.deleted_at) as deleted_at\n\tFROM \n\t  (SELECT\n\t\tspree_product_id,\n\t\tMAX(CASE WHEN locale = 'en' THEN manufacturer END) as supplier_name,\n\t\tMAX(CASE WHEN locale = 'ar' THEN manufacturer END) as code,\n\t\tMAX(created_at) as created_at,\n\t\tMAX(updated_at) as updated_at,\n\t\tMAX(deleted_at) as deleted_at\n\t  FROM spree_product_translations\n\t  WHERE manufacturer IS NOT NULL\n\t  GROUP BY spree_product_id) as spt\n\tGROUP BY spt.code;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -916,18 +923,6 @@
 							"translator": {
 								"type": "TabularTranslator",
 								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int64",
-											"physicalType": "bigint"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
 									{
 										"source": {
 											"name": "created_at",
@@ -1012,6 +1007,34 @@
 								}
 							}
 						]
+					},
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "alter sequence supplier_id_seq restart with 1;\nSelect 'Altering Sequence ID' As Update;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "supplier"
+								}
+							},
+							"firstRowOnly": false
+						}
 					}
 				],
 				"policy": {
