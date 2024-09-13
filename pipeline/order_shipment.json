@@ -265,7 +265,7 @@
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "Lookup1",
+						"activity": "Copy data1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -320,75 +320,6 @@
 						"type": "AzureBlobStorageReadSettings",
 						"recursive": true,
 						"enablePartitionDiscovery": false
-					}
-				}
-			},
-			{
-				"name": "Lookup1",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Copy data1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": "alter table order_shipment add column start_time varchar(100);\nalter table order_shipment add column end_time varchar(100);\nalter table order_shipment add column delivery_option_id int;\nalter table order_shipment add column day_of_week varchar(100);\nALTER TABLE order_shipment ALTER COLUMN time_slot_id DROP NOT NULL;\n\nSelect 'Adding Temporary Fields' As Update;",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "order_shipment"
-						}
-					},
-					"firstRowOnly": false
-				}
-			},
-			{
-				"name": "removingtimeslotfields",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Delete1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": "alter table delivery_capacity drop column start_time;\nalter table delivery_capacity drop column end_time;\nalter table delivery_capacity drop column delivery_option_id;\nalter table delivery_capacity drop column day_of_week;\nSELECT 'Dropped Additional Columns' as Columns;\n",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_V2_USER_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "order_shipment"
-						}
 					}
 				}
 			}
