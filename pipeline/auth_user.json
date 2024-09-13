@@ -240,7 +240,19 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "Alter sequence user_id_seq restart with 1;\nSelect 'Altering Sequence' as update;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
 		"folder": {
