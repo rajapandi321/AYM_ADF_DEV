@@ -288,7 +288,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "alter table delivery_capacity add column start_time varchar(100);\nalter table delivery_capacity add column end_time varchar(100);\nalter table delivery_capacity add column delivery_option_id int;\nalter table delivery_capacity add column day_of_week varchar(100);\nALTER TABLE delivery_capacity  ALTER COLUMN time_slot_id DROP NOT NULL;\nSelect 'Adding Temporary Fields' As Update;",
+						"query": "alter table order_shipment add column start_time varchar(100);\nalter table order_shipment add column end_time varchar(100);\nalter table order_shipment add column delivery_option_id int;\nalter table order_shipment add column day_of_week varchar(100);\nSelect 'Adding Temporary Fields' As Update;",
 						"partitionOption": "None"
 					},
 					"dataset": {
