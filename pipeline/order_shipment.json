@@ -317,6 +317,8 @@
 			{
 				"name": "removingtimeslotfields",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Delete1",
