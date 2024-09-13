@@ -213,7 +213,16 @@
 			{
 				"name": "Data flow1",
 				"type": "ExecuteDataFlow",
-				"dependsOn": [],
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -237,6 +246,8 @@
 			{
 				"name": "Delete1",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Data flow1",
@@ -269,6 +280,8 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
@@ -299,6 +312,40 @@
 						}
 					},
 					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "removingtimeslotfields",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Delete1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "alter table delivery_capacity drop column start_time;\nalter table delivery_capacity drop column end_time;\nalter table delivery_capacity drop column delivery_option_id;\nalter table delivery_capacity drop column day_of_week;\nSELECT 'Dropped Additional Columns' as Columns;\n",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "order_shipment"
+						}
+					}
 				}
 			}
 		],
