@@ -38,6 +38,18 @@
 						"mappings": [
 							{
 								"source": {
+									"name": "id",
+									"type": "Int64",
+									"physicalType": "bigint"
+								},
+								"sink": {
+									"name": "id",
+									"type": "Int32",
+									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
 									"name": "supermarket_id",
 									"type": "Int32",
 									"physicalType": "integer"
@@ -142,6 +154,13 @@
 									"name": "border_width",
 									"type": "Int32",
 									"physicalType": "integer"
+								}
+							},
+							{
+								"sink": {
+									"name": "delivery_area",
+									"type": "String",
+									"physicalType": "character varying"
 								}
 							}
 						],
@@ -313,6 +332,18 @@
 									"name": "border_width",
 									"type": "Int32",
 									"physicalType": "integer"
+								}
+							},
+							{
+								"source": {
+									"name": "delivery_area",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "delivery_area",
+									"type": "String",
+									"physicalType": "character varying"
 								}
 							}
 						],
