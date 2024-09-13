@@ -138,7 +138,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
-				"joindeliverytype, selecttimeslots join(time_slot_id == tc_id,",
+				"joindeliverytype, selecttimeslots join(ERROR_FUNCTION('') == ERROR_FUNCTION(''),",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
