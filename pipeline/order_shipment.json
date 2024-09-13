@@ -191,18 +191,6 @@
 							},
 							{
 								"source": {
-									"name": "time_slot_id",
-									"type": "Int32",
-									"physicalType": "integer"
-								},
-								"sink": {
-									"name": "time_slot_id",
-									"type": "Int32",
-									"physicalType": "INT_32"
-								}
-							},
-							{
-								"source": {
 									"name": "delivery_date",
 									"type": "DateTime",
 									"physicalType": "date"
