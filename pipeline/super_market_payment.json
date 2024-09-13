@@ -38,18 +38,6 @@
 						"mappings": [
 							{
 								"source": {
-									"name": "id",
-									"type": "Int64",
-									"physicalType": "bigint"
-								},
-								"sink": {
-									"name": "id",
-									"type": "Int32",
-									"physicalType": "integer"
-								}
-							},
-							{
-								"source": {
 									"name": "super_market_id",
 									"type": "Int32",
 									"physicalType": "integer"
