@@ -119,6 +119,54 @@
 							},
 							{
 								"source": {
+									"name": "start_time",
+									"type": "TimeSpan",
+									"physicalType": "time without time zone"
+								},
+								"sink": {
+									"name": "start_time",
+									"type": "TimeSpan",
+									"physicalType": "INT_96"
+								}
+							},
+							{
+								"source": {
+									"name": "end_time",
+									"type": "TimeSpan",
+									"physicalType": "time without time zone"
+								},
+								"sink": {
+									"name": "end_time",
+									"type": "TimeSpan",
+									"physicalType": "INT_96"
+								}
+							},
+							{
+								"source": {
+									"name": "day_of_week",
+									"type": "String",
+									"physicalType": "text"
+								},
+								"sink": {
+									"name": "day_of_week",
+									"type": "String",
+									"physicalType": "UTF8"
+								}
+							},
+							{
+								"source": {
+									"name": "delivery_option_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "delivery_option_id",
+									"type": "Int32",
+									"physicalType": "INT_32"
+								}
+							},
+							{
+								"source": {
 									"name": "order_type",
 									"type": "String",
 									"physicalType": "character varying"
@@ -137,6 +185,18 @@
 								},
 								"sink": {
 									"name": "supermarket_id",
+									"type": "Int32",
+									"physicalType": "INT_32"
+								}
+							},
+							{
+								"source": {
+									"name": "time_slot_id",
+									"type": "Int32",
+									"physicalType": "integer"
+								},
+								"sink": {
+									"name": "time_slot_id",
 									"type": "Int32",
 									"physicalType": "INT_32"
 								}
