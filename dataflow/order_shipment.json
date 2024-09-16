@@ -26,7 +26,7 @@
 						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 						"type": "LinkedServiceReference"
 					},
-					"name": "source1"
+					"name": "timeslottable"
 				}
 			],
 			"sinks": [
@@ -35,7 +35,7 @@
 						"referenceName": "LS_V2_PRODUCTION_SERVER",
 						"type": "LinkedServiceReference"
 					},
-					"name": "sink1"
+					"name": "writeintodb"
 				}
 			],
 			"transformations": [
@@ -49,13 +49,13 @@
 					"name": "mergingtimeslots"
 				},
 				{
-					"name": "select1"
+					"name": "selectrequiredcolumns"
 				},
 				{
 					"name": "selecttimeslots"
 				},
 				{
-					"name": "join1"
+					"name": "joiningtimeslots"
 				}
 			],
 			"scriptLines": [
@@ -114,7 +114,7 @@
 				"     tableName: 'time_slot',",
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
-				"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslottable",
 				"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
@@ -126,7 +126,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
-				"join1 derive(formatted_time_slot = concat(selecttimeslots@start_time,'-',selecttimeslots@end_time),",
+				"joiningtimeslots derive(formatted_time_slot = concat(selecttimeslots@start_time,'-',selecttimeslots@end_time),",
 				"          delivery_type_id = coalesce(delivery_type_id,1)) ~> mergingtimeslots",
 				"mergingtimeslots select(mapColumn(",
 				"          id,",
@@ -147,8 +147,8 @@
 				"          time_slot_id = tc_id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"source1 select(mapColumn(",
+				"     skipDuplicateMapOutputs: true) ~> selectrequiredcolumns",
+				"timeslottable select(mapColumn(",
 				"          tc_id = id,",
 				"          start_time,",
 				"          end_time,",
@@ -164,8 +164,8 @@
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"select1 sink(allowSchemaDrift: true,",
+				"     broadcast: 'auto')~> joiningtimeslots",
+				"selectrequiredcolumns sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          id as integer,",
@@ -218,7 +218,7 @@
 				"          is_delivery_on_hold,",
 				"          formatted_time_slot,",
 				"          status = order_status",
-				"     )) ~> sink1"
+				"     )) ~> writeintodb"
 			]
 		}
 	}
