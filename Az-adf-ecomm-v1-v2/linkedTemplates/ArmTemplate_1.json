@@ -256,7 +256,7 @@
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "source1"
+							"name": "timeslottable"
 						}
 					],
 					"sinks": [
@@ -265,7 +265,7 @@
 								"referenceName": "LS_V2_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "sink1"
+							"name": "writeintodb"
 						}
 					],
 					"transformations": [
@@ -279,13 +279,13 @@
 							"name": "mergingtimeslots"
 						},
 						{
-							"name": "select1"
+							"name": "selectrequiredcolumns"
 						},
 						{
 							"name": "selecttimeslots"
 						},
 						{
-							"name": "join1"
+							"name": "joiningtimeslots"
 						}
 					],
 					"scriptLines": [
@@ -297,8 +297,11 @@
 						"          updated_at as timestamp,",
 						"          tax_total as double,",
 						"          total as decimal(38,18),",
+						"          start_time as string,",
+						"          end_time as string,",
+						"          day_of_week as string,",
+						"          delivery_option_id as integer,",
 						"          order_type as string,",
-						"          time_slot_id as integer,",
 						"          supermarket_id as integer,",
 						"          delivery_date as timestamp,",
 						"          delivery_charges as decimal(38,18),",
@@ -341,7 +344,7 @@
 						"     tableName: 'time_slot',",
 						"     schemaName: 'public',",
 						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> source1",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslottable",
 						"ordershipment, selectdeliverytype join(order_type == delivery_type_name,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
@@ -353,7 +356,7 @@
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
-						"join1 derive(formatted_time_slot = concat(start_time,'-',end_time),",
+						"joiningtimeslots derive(formatted_time_slot = concat(selecttimeslots@start_time,'-',selecttimeslots@end_time),",
 						"          delivery_type_id = coalesce(delivery_type_id,1)) ~> mergingtimeslots",
 						"mergingtimeslots select(mapColumn(",
 						"          id,",
@@ -364,30 +367,35 @@
 						"          tax_total,",
 						"          total,",
 						"          order_type,",
-						"          time_slot_id,",
 						"          supermarket_id,",
 						"          delivery_date,",
 						"          delivery_charges,",
 						"          is_delivery_on_hold,",
 						"          processing_start_at,",
 						"          delivery_type_id,",
-						"          formatted_time_slot",
+						"          formatted_time_slot,",
+						"          time_slot_id = tc_id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"source1 select(mapColumn(",
+						"     skipDuplicateMapOutputs: true) ~> selectrequiredcolumns",
+						"timeslottable select(mapColumn(",
 						"          tc_id = id,",
 						"          start_time,",
-						"          end_time",
+						"          end_time,",
+						"          delivery_option_id,",
+						"          day_of_week",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> selecttimeslots",
-						"joindeliverytype, selecttimeslots join(time_slot_id == tc_id,",
+						"joindeliverytype, selecttimeslots join(ordershipment@start_time == selecttimeslots@start_time",
+						"     && ordershipment@end_time == selecttimeslots@end_time",
+						"     && ordershipment@delivery_option_id == selecttimeslots@delivery_option_id",
+						"     && ordershipment@day_of_week == selecttimeslots@day_of_week,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     broadcast: 'auto')~> joiningtimeslots",
+						"selectrequiredcolumns sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     input(",
 						"          id as integer,",
@@ -427,20 +435,20 @@
 						"     mapColumn(",
 						"          id,",
 						"          order_id,",
-						"          status = order_status,",
+						"          supermarket_id,",
+						"          delivery_type_id,",
+						"          delivery_date,",
+						"          total,",
+						"          tax_total,",
+						"          delivery_charges,",
+						"          time_slot_id,",
 						"          created_at,",
 						"          updated_at,",
-						"          tax_total,",
-						"          total,",
-						"          supermarket_id,",
-						"          delivery_date,",
-						"          delivery_charges,",
-						"          is_delivery_on_hold,",
 						"          processing_start_at,",
-						"          delivery_type_id,",
-						"          time_slot_id,",
-						"          formatted_time_slot",
-						"     )) ~> sink1"
+						"          is_delivery_on_hold,",
+						"          formatted_time_slot,",
+						"          status = order_status",
+						"     )) ~> writeintodb"
 					]
 				}
 			},
@@ -478,18 +486,18 @@
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "sink1"
+							"name": "StoreInDB"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "joiningCity"
 						},
 						{
-							"name": "select1"
+							"name": "selectingRequiredFields"
 						},
 						{
-							"name": "derivedColumn1"
+							"name": "replacingemptystringintransactionID"
 						}
 					],
 					"scriptLines": [
@@ -542,8 +550,8 @@
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"derivedColumn1 select(mapColumn(",
+						"     broadcast: 'auto')~> joiningCity",
+						"replacingemptystringintransactionID select(mapColumn(",
 						"          id = supermarket@id,",
 						"          name = supermarket@name,",
 						"          address,",
@@ -563,9 +571,9 @@
 						"          translation_id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"join1 derive(translation_id = coalesce(translation_id,'')) ~> derivedColumn1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectingRequiredFields",
+						"joiningCity derive(translation_id = coalesce(translation_id,'')) ~> replacingemptystringintransactionID",
+						"selectingRequiredFields sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
 						"     tableName: 'super_market',",
@@ -577,7 +585,7 @@
 						"     store: 'postgres',",
 						"     batchSize: 100000,",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink1"
+						"     skipDuplicateMapOutputs: true) ~> StoreInDB"
 					]
 				}
 			},
@@ -615,15 +623,15 @@
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "sink1"
+							"name": "StoreInDB"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "joiningCityTable"
 						},
 						{
-							"name": "select1"
+							"name": "selectingRequiredFields"
 						}
 					],
 					"scriptLines": [
@@ -682,8 +690,8 @@
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
+						"     broadcast: 'auto')~> joiningCityTable",
+						"joiningCityTable select(mapColumn(",
 						"          id = source1@id,",
 						"          is_deleted,",
 						"          created_at = source1@created_at,",
@@ -709,8 +717,8 @@
 						"          city_id = city@id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectingRequiredFields",
+						"selectingRequiredFields sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
 						"     tableName: 'user',",
@@ -746,7 +754,7 @@
 						"          blacklisted_at,",
 						"          blacklisted_reason,",
 						"          city_id",
-						"     )) ~> sink1"
+						"     )) ~> StoreInDB"
 					]
 				}
 			},
@@ -1034,7 +1042,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT distinct\n\tu.id as id,\n    u.id AS user,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at\n\t\nFROM spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.id <> 2 and sr.name <> 'user';"
+								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tu.spree_api_key as api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -1980,7 +1988,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    a.id,\n    a.user_id,\n\tCOALESCE(a.name, '') AS name_on_card,\n    COALESCE(a.cc_type, '') AS scheme,\n    CASE \n        WHEN a.cc_type = 'MADA' THEN 'mada'\n        ELSE ''\n    END AS scheme_local,\n\tCOALESCE(a.gateway_payment_profile_id, '') AS instrument_id,\n\tCOALESCE(NULLIF(a.last_digits ~ E'^\\\\d+$', false)::integer, -1) AS last_digits,\n\tCOALESCE(NULLIF(a.month ~ E'^\\\\d+$', false)::integer, -1) AS expiry_month,\n\tCOALESCE(NULLIF(a.year ~ E'^\\\\d+$', false)::integer, -1) AS expiry_year,\n    a.updated_at,\n    a.created_at,\n\t'CREDIT' as card_type\nFROM   \n    spree_credit_cards a\nwhere user_id is not null\nORDER BY \n    id ASC;"
+								"query": "SELECT \n    a.id,\n    a.user_id,\n\tCOALESCE(a.name, '') AS name_on_card,\n    COALESCE(a.cc_type, '') AS scheme,\n    CASE \n        WHEN a.cc_type = 'MADA' THEN 'mada'\n        ELSE ''\n    END AS scheme_local,\n\tCOALESCE(a.gateway_payment_profile_id, '') AS instrument_id,\n\ta.last_digits,\n\ta.month,\n\ta.year,\n    a.updated_at,\n    a.created_at,\n\t'CREDIT' as card_type\nFROM   \n    spree_credit_cards a\nwhere user_id is not null\nand gateway_customer_profile_id is not null\nORDER BY \n    id ASC;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -2384,7 +2392,7 @@
 								"datasetParameters": {
 									"source1": {},
 									"currency": {},
-									"sink1": {}
+									"storeindb": {}
 								}
 							},
 							"staging": {},
@@ -2670,7 +2678,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "select \n\tdtss.id, \n\tcast(dts.start_time as text) as start_time, \n\tcast(dts.end_time as text) as end_time,\n\tCASE\n\t\tWHEN dtss.day_of_week = 0 THEN 'sunday'\n\t\tWHEN dtss.day_of_week = 1 THEN 'monday'\n\t\tWHEN dtss.day_of_week = 2 THEN 'tuesday'\n\t\tWHEN dtss.day_of_week = 3 THEN 'wednesday'\n\t\tWHEN dtss.day_of_week = 4 THEN 'thursday'\n\t\tWHEN dtss.day_of_week = 5 THEN 'friday'\n\t\tWHEN dtss.day_of_week = 6 THEN 'saturday'\n\tElse 'sunday'\n\tEND AS day_of_week,\n\tdtss.spree_shipping_method_id as delivery_option_id,\n\tds.id as supermarket_id, \n\tcoalesce(dtss.delivery_capacity,0) as capacity, \n\tnull as time_slot_id, \n\tdtss.enabled as is_enabled,\n\tdtss.created_at,\n\tdtss.updated_at\nfrom danube_time_slots_schedules dtss\nleft join danube_time_slots dts on dts.id  = dtss.time_slot_id \nleft join danube_supermarkets ds on ds.zone_id = dtss.zone_id\norder by dts.id\nlimit 100;"
+								"query": "select \n\tdtss.id, \n\tcast(dts.start_time as text) as start_time, \n\tcast(dts.end_time as text) as end_time,\n\tCASE\n\t\tWHEN dtss.day_of_week = 0 THEN 'sunday'\n\t\tWHEN dtss.day_of_week = 1 THEN 'monday'\n\t\tWHEN dtss.day_of_week = 2 THEN 'tuesday'\n\t\tWHEN dtss.day_of_week = 3 THEN 'wednesday'\n\t\tWHEN dtss.day_of_week = 4 THEN 'thursday'\n\t\tWHEN dtss.day_of_week = 5 THEN 'friday'\n\t\tWHEN dtss.day_of_week = 6 THEN 'saturday'\n\tElse 'sunday'\n\tEND AS day_of_week,\n\tdtss.spree_shipping_method_id as delivery_option_id,\n\tcoalesce(ds.id,0) as supermarket_id, \n\tcoalesce(dtss.delivery_capacity,0) as capacity, \n\tnull as time_slot_id, \n\tdtss.enabled as is_enabled,\n\tdtss.created_at,\n\tdtss.updated_at\nfrom danube_time_slots_schedules dtss\nleft join danube_time_slots dts on dts.id  = dtss.time_slot_id \nleft join danube_supermarkets ds on ds.zone_id = dtss.zone_id\norder by dts.id;"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",

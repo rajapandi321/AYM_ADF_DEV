@@ -653,15 +653,15 @@
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "sink1"
+							"name": "storeindb"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "joiningCurrency"
 						},
 						{
-							"name": "select1"
+							"name": "selectingrequiredFields"
 						}
 					],
 					"scriptLines": [
@@ -697,8 +697,8 @@
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
+						"     broadcast: 'auto')~> joiningCurrency",
+						"joiningCurrency select(mapColumn(",
 						"          id = source1@id,",
 						"          iso_country_code,",
 						"          name = source1@name,",
@@ -709,8 +709,8 @@
 						"          currency_id = currency@id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 sink(allowSchemaDrift: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectingrequiredFields",
+						"selectingrequiredFields sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
 						"     tableName: 'country',",
@@ -731,7 +731,7 @@
 						"          default_super_market_id,",
 						"          currency_precision,",
 						"          currency_id",
-						"     )) ~> sink1"
+						"     )) ~> storeindb"
 					]
 				}
 			},
@@ -772,21 +772,21 @@
 								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
-							"name": "sink1"
+							"name": "StoreInDB"
 						}
 					],
 					"transformations": [
 						{
-							"name": "join1"
+							"name": "joiningCityTable"
 						},
 						{
-							"name": "select1"
+							"name": "selectingNeededColumns"
 						},
 						{
 							"name": "window1"
 						},
 						{
-							"name": "select2"
+							"name": "selectingRequiredColumns"
 						},
 						{
 							"name": "filteringcolumns"
@@ -844,8 +844,8 @@
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
+						"     broadcast: 'auto')~> joiningCityTable",
+						"joiningCityTable select(mapColumn(",
 						"          id = employee@id,",
 						"          role_id,",
 						"          email,",
@@ -867,8 +867,8 @@
 						"          role_name",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1 window(over(id),",
+						"     skipDuplicateMapOutputs: true) ~> selectingNeededColumns",
+						"selectingNeededColumns window(over(id),",
 						"     asc(role_name, false),",
 						"     final_column = rowNumber()==1) ~> window1",
 						"filteringcolumns select(mapColumn(",
@@ -892,9 +892,9 @@
 						"          city_id",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select2",
+						"     skipDuplicateMapOutputs: true) ~> selectingRequiredColumns",
 						"window1 filter(equals(final_column,true())) ~> filteringcolumns",
-						"select2 sink(allowSchemaDrift: true,",
+						"selectingRequiredColumns sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
 						"     tableName: 'employee',",
@@ -905,7 +905,7 @@
 						"     upsertable: false,",
 						"     store: 'postgres',",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink1"
+						"     skipDuplicateMapOutputs: true) ~> StoreInDB"
 					]
 				}
 			},

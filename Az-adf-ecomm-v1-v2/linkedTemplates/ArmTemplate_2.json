@@ -164,7 +164,7 @@
 								"datasetParameters": {
 									"employee": {},
 									"city": {},
-									"sink1": {}
+									"StoreInDB": {}
 								}
 							},
 							"staging": {},
