@@ -28,15 +28,15 @@
 						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 						"type": "LinkedServiceReference"
 					},
-					"name": "sink1"
+					"name": "StoreInDB"
 				}
 			],
 			"transformations": [
 				{
-					"name": "join1"
+					"name": "joiningCityTable"
 				},
 				{
-					"name": "select1"
+					"name": "selectingRequiredFields"
 				}
 			],
 			"scriptLines": [
@@ -95,8 +95,8 @@
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 select(mapColumn(",
+				"     broadcast: 'auto')~> joiningCityTable",
+				"joiningCityTable select(mapColumn(",
 				"          id = source1@id,",
 				"          is_deleted,",
 				"          created_at = source1@created_at,",
@@ -122,8 +122,8 @@
 				"          city_id = city@id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectingRequiredFields",
+				"selectingRequiredFields sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
 				"     tableName: 'user',",
@@ -159,7 +159,7 @@
 				"          blacklisted_at,",
 				"          blacklisted_reason,",
 				"          city_id",
-				"     )) ~> sink1"
+				"     )) ~> StoreInDB"
 			]
 		}
 	}
