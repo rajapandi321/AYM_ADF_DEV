@@ -28,15 +28,15 @@
 						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
 						"type": "LinkedServiceReference"
 					},
-					"name": "sink1"
+					"name": "storeindb"
 				}
 			],
 			"transformations": [
 				{
-					"name": "join1"
+					"name": "joiningCurrency"
 				},
 				{
-					"name": "select1"
+					"name": "selectingrequiredFields"
 				}
 			],
 			"scriptLines": [
@@ -72,8 +72,8 @@
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 select(mapColumn(",
+				"     broadcast: 'auto')~> joiningCurrency",
+				"joiningCurrency select(mapColumn(",
 				"          id = source1@id,",
 				"          iso_country_code,",
 				"          name = source1@name,",
@@ -84,8 +84,8 @@
 				"          currency_id = currency@id",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectingrequiredFields",
+				"selectingrequiredFields sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
 				"     tableName: 'country',",
@@ -106,7 +106,7 @@
 				"          default_super_market_id,",
 				"          currency_precision,",
 				"          currency_id",
-				"     )) ~> sink1"
+				"     )) ~> storeindb"
 			]
 		}
 	}
