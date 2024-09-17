@@ -54,7 +54,7 @@
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
-				"     tableName: 'user',",
+				"     tableName: 'employee',",
 				"     schemaName: 'public',",
 				"     deletable: false,",
 				"     insertable: false,",
@@ -63,7 +63,23 @@
 				"     keys:['user'],",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink1"
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          is_deleted,",
+				"          created_at,",
+				"          updated_at,",
+				"          user,",
+				"          email,",
+				"          password_updated_at,",
+				"          login_type,",
+				"          social_id,",
+				"          is_email_verified,",
+				"          mobile_verified,",
+				"          password_salt,",
+				"          password,",
+				"          is_blacklisted,",
+				"          spree_api_key",
+				"     )) ~> sink1"
 			]
 		}
 	}
