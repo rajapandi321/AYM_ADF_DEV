@@ -134,7 +134,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_auth_user_cdc",
+						"referenceName": "df_auth_employee_cdc",
 						"type": "DataFlowReference"
 					},
 					"compute": {
