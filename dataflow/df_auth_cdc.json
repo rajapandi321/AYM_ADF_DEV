@@ -60,7 +60,7 @@
 				"     insertable: false,",
 				"     updateable: false,",
 				"     upsertable: true,",
-				"     keys:['spree_api_key','user'],",
+				"     keys:['user'],",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> sink1"
