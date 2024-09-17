@@ -1,0 +1,17 @@
+{
+	"name": "df_device_token_cdc",
+	"properties": {
+		"folder": {
+			"name": "Auth_CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [],
+			"sinks": [],
+			"transformations": [],
+			"scriptLines": [
+				""
+			]
+		}
+	}
+}
