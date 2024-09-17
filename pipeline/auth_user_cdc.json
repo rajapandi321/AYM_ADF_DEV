@@ -13,7 +13,21 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) from user;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "user"
+						}
+					}
+				}
 			}
 		],
 		"folder": {
