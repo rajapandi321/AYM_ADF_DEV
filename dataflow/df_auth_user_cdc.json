@@ -1,5 +1,5 @@
 {
-	"name": "df_auth_cdc",
+	"name": "df_auth_user_cdc",
 	"properties": {
 		"folder": {
 			"name": "Auth_CDC"
