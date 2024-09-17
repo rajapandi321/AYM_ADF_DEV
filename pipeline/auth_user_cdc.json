@@ -80,7 +80,7 @@
 						"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
 						"type": "DatasetReference",
 						"parameters": {
-							"table_name": "public.user"
+							"table_name": "user"
 						}
 					}
 				]
