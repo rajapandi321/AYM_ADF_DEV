@@ -52,7 +52,7 @@
 					"source": {
 						"type": "PostgreSqlV2Source",
 						"query": {
-							"value": "with cte as(\nselect \n  distinct user_id,\n  uuid as device_id,\n  platform as device_type,\n  created_at,\n  updated_at,\n  push_notification_token as token,\n  'customer' as user_type\nfrom spree_user_clients\norder by user_id, uuid)\n\nselect user_id, device_id, device_type, created_at, updated_at, token, user_type\nfrom cte \nwhere updated_at >= '@{variables('max_updated_date')}';",
+							"value": "with cte as(\nselect \n  distinct user_id,\n  uuid as device_id,\n  platform as device_type,\n  created_at,\n  updated_at,\n  push_notification_token as token,\n  'customer' as user_type,\n  row_number() over (partition by user_id order by user_id) as rn\nfrom spree_user_clients\norder by user_id, uuid)\n\nselect user_id, device_id, device_type, created_at, updated_at, token, user_type\nfrom cte \nwhere updated_at >= '@{variables('max_updated_date')}'\nand rn = 1;",
 							"type": "Expression"
 						}
 					},
