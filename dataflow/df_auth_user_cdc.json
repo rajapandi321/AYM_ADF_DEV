@@ -1,16 +1,85 @@
 {
-	"name": "df_device_token_cdc",
+	"name": "df_auth_user_cdc",
 	"properties": {
 		"folder": {
 			"name": "Auth_CDC"
 		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
-			"sources": [],
-			"sinks": [],
-			"transformations": [],
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
 			"scriptLines": [
-				""
+				"source(output(",
+				"          is_deleted as boolean,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          user as integer,",
+				"          email as string,",
+				"          password_updated_at as timestamp,",
+				"          login_type as string,",
+				"          social_id as string,",
+				"          is_email_verified as boolean,",
+				"          mobile_verified as boolean,",
+				"          password_salt as string,",
+				"          password as string,",
+				"          is_blacklisted as boolean,",
+				"          spree_api_key as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'user',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['user'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          is_deleted,",
+				"          created_at,",
+				"          updated_at,",
+				"          user,",
+				"          email,",
+				"          password_updated_at,",
+				"          login_type,",
+				"          social_id,",
+				"          is_email_verified,",
+				"          mobile_verified,",
+				"          password_salt,",
+				"          password,",
+				"          is_blacklisted,",
+				"          spree_api_key",
+				"     )) ~> sink1"
 			]
 		}
 	}
