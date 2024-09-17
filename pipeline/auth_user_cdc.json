@@ -301,7 +301,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_auth_user_cdc",
+						"referenceName": "df_auth_device_token_cdc",
 						"type": "DataFlowReference"
 					},
 					"compute": {
