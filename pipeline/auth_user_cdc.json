@@ -34,7 +34,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "fetchmaxupdateddate",
+						"activity": "Set variable1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -84,8 +84,37 @@
 						}
 					}
 				]
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fetchmaxupdateddate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "max_updated_date",
+					"value": {
+						"value": "@activity('fetchmaxupdateddate').output.firstRow.max_updated_date",
+						"type": "Expression"
+					}
+				}
 			}
 		],
+		"variables": {
+			"max_updated_date": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "Auth DB CDC"
 		},
