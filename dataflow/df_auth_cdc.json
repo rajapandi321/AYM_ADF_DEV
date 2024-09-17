@@ -54,7 +54,7 @@
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
-				"     tableName: 'employee',",
+				"     tableName: 'user',",
 				"     schemaName: 'public',",
 				"     deletable: false,",
 				"     insertable: false,",
