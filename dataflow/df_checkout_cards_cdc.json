@@ -1,0 +1,82 @@
+{
+	"name": "df_checkout_cards_cdc",
+	"properties": {
+		"folder": {
+			"name": "User_CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          user_id as integer,",
+				"          name_on_card as string,",
+				"          scheme as string,",
+				"          scheme_local as string,",
+				"          instrument_id as string,",
+				"          last_digits as string,",
+				"          month as string,",
+				"          year as string,",
+				"          updated_at as timestamp,",
+				"          created_at as timestamp,",
+				"          card_type as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'checkout_cards',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          user_id,",
+				"          name_on_card,",
+				"          scheme,",
+				"          scheme_local,",
+				"          instrument_id,",
+				"          last_digits,",
+				"          month,",
+				"          year,",
+				"          updated_at,",
+				"          created_at,",
+				"          card_type",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
