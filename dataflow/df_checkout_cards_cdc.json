@@ -74,7 +74,7 @@
 				"     insertable: false,",
 				"     updateable: false,",
 				"     upsertable: true,",
-				"     keys:['id'],",
+				"     keys:['id','user_id'],",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
