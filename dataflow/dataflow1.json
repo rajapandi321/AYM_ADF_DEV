@@ -1,0 +1,147 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"folder": {
+			"name": "User_CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "citytable"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          is_deleted as boolean,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email as string,",
+				"          gender as string,",
+				"          country_code as string,",
+				"          mobile_number as string,",
+				"          dob as string,",
+				"          referral_code as string,",
+				"          language_id as integer,",
+				"          city as string,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          country_id as integer,",
+				"          receive_marketing_promotions as boolean,",
+				"          login_type as string,",
+				"          social_id as string,",
+				"          balance as integer,",
+				"          blacklisted_at as timestamp,",
+				"          blacklisted_reason as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source(output(",
+				"          id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          name as string,",
+				"          country_id as integer,",
+				"          abbreviation as string,",
+				"          city_image_url as string,",
+				"          is_visible as boolean,",
+				"          deleted_at as timestamp,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          translation_id as string,",
+				"          state_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'city',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> citytable",
+				"citytable select(mapColumn(",
+				"          city_id = id,",
+				"          name",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"source1, select1 join(city == name,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:[''],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          is_deleted,",
+				"          created_at,",
+				"          updated_at,",
+				"          first_name,",
+				"          last_name,",
+				"          email,",
+				"          gender,",
+				"          country_code,",
+				"          mobile_number,",
+				"          dob,",
+				"          referral_code,",
+				"          language_id,",
+				"          latitude,",
+				"          longitude,",
+				"          country_id,",
+				"          receive_marketing_promotions,",
+				"          login_type,",
+				"          social_id,",
+				"          balance,",
+				"          blacklisted_at,",
+				"          blacklisted_reason,",
+				"          city_id",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
