@@ -741,6 +741,102 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/df_address_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          formatted_address as string,",
+						"          city as string,",
+						"          country as string,",
+						"          postal_code as long,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          district as string,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          is_default as boolean,",
+						"          user_id as integer,",
+						"          type as string,",
+						"          is_verified as string,",
+						"          title as string,",
+						"          comments as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'address',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          formatted_address,",
+						"          city,",
+						"          country,",
+						"          postal_code,",
+						"          created_at,",
+						"          updated_at,",
+						"          district,",
+						"          latitude,",
+						"          longitude,",
+						"          is_default,",
+						"          user_id,",
+						"          type,",
+						"          is_verified,",
+						"          title,",
+						"          comments",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/df_auth_device_token_cdc')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -809,88 +905,6 @@
 						"          updated_at,",
 						"          token,",
 						"          user_type",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_auth_employee_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "Auth_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          user as integer,",
-						"          password as string,",
-						"          password_salt as string,",
-						"          email as string,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          is_deleted as boolean,",
-						"          password_updated_at as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'employee',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['user'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          user,",
-						"          password,",
-						"          password_salt,",
-						"          email,",
-						"          created_at,",
-						"          updated_at,",
-						"          is_deleted,",
-						"          password_updated_at",
 						"     )) ~> sink1"
 					]
 				}

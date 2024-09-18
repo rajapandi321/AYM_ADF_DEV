@@ -13,6 +13,85 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/df_auth_employee_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Auth_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          user as integer,",
+						"          password as string,",
+						"          password_salt as string,",
+						"          email as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          is_deleted as boolean,",
+						"          password_updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'employee',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['user'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          user,",
+						"          password,",
+						"          password_salt,",
+						"          email,",
+						"          created_at,",
+						"          updated_at,",
+						"          is_deleted,",
+						"          password_updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/df_auth_user_cdc')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -117,6 +196,783 @@
 						"          password,",
 						"          is_blacklisted,",
 						"          spree_api_key",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_checkout_cards_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          user_id as integer,",
+						"          name_on_card as string,",
+						"          scheme as string,",
+						"          scheme_local as string,",
+						"          instrument_id as string,",
+						"          last_digits as string,",
+						"          month as string,",
+						"          year as string,",
+						"          updated_at as timestamp,",
+						"          created_at as timestamp,",
+						"          card_type as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          instrument_id as string,",
+						"          card_type as string,",
+						"          expiry_month as integer,",
+						"          expiry_year as integer,",
+						"          scheme as string,",
+						"          user_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          last_digits as string,",
+						"          name_on_card as string,",
+						"          scheme_local as string,",
+						"          bin as string",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'checkout_cards',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id','user_id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          instrument_id,",
+						"          card_type,",
+						"          expiry_month = month,",
+						"          expiry_year = year,",
+						"          scheme,",
+						"          user_id,",
+						"          created_at,",
+						"          updated_at,",
+						"          last_digits,",
+						"          name_on_card,",
+						"          scheme_local",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_employee_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectingcityfields"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "window1"
+						},
+						{
+							"name": "filter1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          role_id as integer,",
+						"          email as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          is_deleted as boolean,",
+						"          first_name as string,",
+						"          last_name as string,",
+						"          mobile_number as string,",
+						"          dob as timestamp,",
+						"          country_code as string,",
+						"          country_id as integer,",
+						"          gender as string,",
+						"          user_type as string,",
+						"          availability as string,",
+						"          role_name as string,",
+						"          active as boolean,",
+						"          status as boolean,",
+						"          city as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source(output(",
+						"          id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          name as string,",
+						"          country_id as integer,",
+						"          abbreviation as string,",
+						"          city_image_url as string,",
+						"          is_visible as boolean,",
+						"          deleted_at as timestamp,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          translation_id as string,",
+						"          state_id as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'city',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> source2",
+						"source2 select(mapColumn(",
+						"          city_id = id,",
+						"          name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectingcityfields",
+						"source1, selectingcityfields join(lower(city) == name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"filter1 alterRow(upsertIf(true())) ~> alterRow1",
+						"join1 window(over(id),",
+						"     asc(role_name, true),",
+						"     final_column = rowNumber() == 1) ~> window1",
+						"window1 filter(equals(final_column,true())) ~> filter1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          is_deleted as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          first_name as string,",
+						"          last_name as string,",
+						"          email as string,",
+						"          gender as string,",
+						"          country_code as string,",
+						"          mobile_number as string,",
+						"          dob as date,",
+						"          user_type as string,",
+						"          role_id as integer,",
+						"          active as boolean,",
+						"          country_id as integer,",
+						"          city_id as integer,",
+						"          vehicle_id as integer,",
+						"          status as boolean,",
+						"          availability as string,",
+						"          language_id as integer",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'employee',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          is_deleted,",
+						"          created_at,",
+						"          updated_at,",
+						"          first_name,",
+						"          last_name,",
+						"          email,",
+						"          gender,",
+						"          country_code,",
+						"          mobile_number,",
+						"          dob,",
+						"          user_type,",
+						"          role_id,",
+						"          active,",
+						"          country_id,",
+						"          city_id,",
+						"          status,",
+						"          availability",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_feedback_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'feedback',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: true,",
+						"     updateable: false,",
+						"     upsertable: false,",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_inventory_modifiers')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Product CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          product_id as integer,",
+						"          action_price as double,",
+						"          track_stock as boolean,",
+						"          supermarket_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          sale_price as double,",
+						"          sale_start_date as timestamp,",
+						"          sale_start_time as string,",
+						"          sale_end_date as timestamp,",
+						"          sale_end_time as string,",
+						"          availability_start_date as timestamp,",
+						"          availability_end_date as timestamp,",
+						"          stock_quantity as integer,",
+						"          cost_price as decimal(38,18)",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'inventory_modifiers',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          product_id,",
+						"          action_price,",
+						"          track_stock,",
+						"          supermarket_id,",
+						"          created_at,",
+						"          updated_at,",
+						"          sale_price,",
+						"          sale_start_date,",
+						"          sale_start_time,",
+						"          sale_end_date,",
+						"          sale_end_time,",
+						"          availability_start_date,",
+						"          availability_end_date,",
+						"          stock_quantity,",
+						"          cost_price",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_loyalty_member_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as long,",
+						"          user_id as long,",
+						"          tenant_id as long,",
+						"          loyalty_member_id as integer,",
+						"          loyalty_id as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'loyalty_member',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          user_id,",
+						"          tenant_id,",
+						"          loyalty_member_id,",
+						"          loyalty_id,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_recipe_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Product CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name_en as string,",
+						"          recipe_en as string,",
+						"          calories as integer,",
+						"          cuisine_id as integer,",
+						"          servings as integer,",
+						"          updated_at as timestamp,",
+						"          is_visible as boolean,",
+						"          created_at as timestamp,",
+						"          description_en as string,",
+						"          name_ar as string,",
+						"          recipe_ar as string,",
+						"          description_ar as string,",
+						"          country_id as integer,",
+						"          cuisines_banner_image_url as string,",
+						"          recipe_banner_image_url as string,",
+						"          app_home_image_url as string,",
+						"          position as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'recipe',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          name_en,",
+						"          recipe_en,",
+						"          calories,",
+						"          cuisine_id,",
+						"          servings,",
+						"          updated_at,",
+						"          is_visible,",
+						"          created_at,",
+						"          description_en,",
+						"          name_ar,",
+						"          recipe_ar,",
+						"          description_ar,",
+						"          country_id,",
+						"          cuisines_banner_image_url,",
+						"          recipe_banner_image_url,",
+						"          app_home_image_url,",
+						"          position",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_user_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "User_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "citytable"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select1"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          is_deleted as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          first_name as string,",
+						"          last_name as string,",
+						"          email as string,",
+						"          gender as string,",
+						"          country_code as string,",
+						"          mobile_number as string,",
+						"          dob as string,",
+						"          referral_code as string,",
+						"          language_id as integer,",
+						"          city as string,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          country_id as integer,",
+						"          receive_marketing_promotions as boolean,",
+						"          login_type as string,",
+						"          social_id as string,",
+						"          balance as integer,",
+						"          blacklisted_at as timestamp,",
+						"          blacklisted_reason as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source(output(",
+						"          id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          name as string,",
+						"          country_id as integer,",
+						"          abbreviation as string,",
+						"          city_image_url as string,",
+						"          is_visible as boolean,",
+						"          deleted_at as timestamp,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          translation_id as string,",
+						"          state_id as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'city',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> citytable",
+						"citytable select(mapColumn(",
+						"          city_id = id,",
+						"          name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"source1, select1 join(city == name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          is_deleted as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          first_name as string,",
+						"          last_name as string,",
+						"          email as string,",
+						"          gender as string,",
+						"          country_code as string,",
+						"          mobile_number as string,",
+						"          dob as date,",
+						"          referral_code as string,",
+						"          language_id as integer,",
+						"          super_market_id as integer,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          country_id as integer,",
+						"          city_id as integer,",
+						"          receive_marketing_promotions as boolean,",
+						"          login_type as string,",
+						"          social_id as string,",
+						"          balance as double,",
+						"          blacklisted_at as timestamp,",
+						"          blacklisted_reason as string",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'user',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          is_deleted,",
+						"          created_at,",
+						"          updated_at,",
+						"          first_name,",
+						"          last_name,",
+						"          email,",
+						"          gender,",
+						"          country_code,",
+						"          mobile_number,",
+						"          dob,",
+						"          referral_code,",
+						"          language_id,",
+						"          latitude,",
+						"          longitude,",
+						"          country_id,",
+						"          receive_marketing_promotions,",
+						"          login_type,",
+						"          social_id,",
+						"          balance,",
+						"          blacklisted_at,",
+						"          blacklisted_reason,",
+						"          city_id",
 						"     )) ~> sink1"
 					]
 				}
@@ -1252,686 +2108,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/df_user_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "citytable"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "select1"
-						},
-						{
-							"name": "join1"
-						},
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          is_deleted as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          first_name as string,",
-						"          last_name as string,",
-						"          email as string,",
-						"          gender as string,",
-						"          country_code as string,",
-						"          mobile_number as string,",
-						"          dob as string,",
-						"          referral_code as string,",
-						"          language_id as integer,",
-						"          city as string,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          country_id as integer,",
-						"          receive_marketing_promotions as boolean,",
-						"          login_type as string,",
-						"          social_id as string,",
-						"          balance as integer,",
-						"          blacklisted_at as timestamp,",
-						"          blacklisted_reason as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source(output(",
-						"          id as integer,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          name as string,",
-						"          country_id as integer,",
-						"          abbreviation as string,",
-						"          city_image_url as string,",
-						"          is_visible as boolean,",
-						"          deleted_at as timestamp,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          translation_id as string,",
-						"          state_id as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'city',",
-						"     schemaName: 'public',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> citytable",
-						"citytable select(mapColumn(",
-						"          city_id = id,",
-						"          name",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"source1, select1 join(city == name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          id as integer,",
-						"          is_deleted as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          first_name as string,",
-						"          last_name as string,",
-						"          email as string,",
-						"          gender as string,",
-						"          country_code as string,",
-						"          mobile_number as string,",
-						"          dob as date,",
-						"          referral_code as string,",
-						"          language_id as integer,",
-						"          super_market_id as integer,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          country_id as integer,",
-						"          city_id as integer,",
-						"          receive_marketing_promotions as boolean,",
-						"          login_type as string,",
-						"          social_id as string,",
-						"          balance as double,",
-						"          blacklisted_at as timestamp,",
-						"          blacklisted_reason as string",
-						"     ),",
-						"     format: 'table',",
-						"     tableName: 'user',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          is_deleted,",
-						"          created_at,",
-						"          updated_at,",
-						"          first_name,",
-						"          last_name,",
-						"          email,",
-						"          gender,",
-						"          country_code,",
-						"          mobile_number,",
-						"          dob,",
-						"          referral_code,",
-						"          language_id,",
-						"          latitude,",
-						"          longitude,",
-						"          country_id,",
-						"          receive_marketing_promotions,",
-						"          login_type,",
-						"          social_id,",
-						"          balance,",
-						"          blacklisted_at,",
-						"          blacklisted_reason,",
-						"          city_id",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_address_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          formatted_address as string,",
-						"          city as string,",
-						"          country as string,",
-						"          postal_code as long,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          district as string,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          is_default as boolean,",
-						"          user_id as integer,",
-						"          type as string,",
-						"          is_verified as string,",
-						"          title as string,",
-						"          comments as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'address',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          formatted_address,",
-						"          city,",
-						"          country,",
-						"          postal_code,",
-						"          created_at,",
-						"          updated_at,",
-						"          district,",
-						"          latitude,",
-						"          longitude,",
-						"          is_default,",
-						"          user_id,",
-						"          type,",
-						"          is_verified,",
-						"          title,",
-						"          comments",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_checkout_cards_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          user_id as integer,",
-						"          name_on_card as string,",
-						"          scheme as string,",
-						"          scheme_local as string,",
-						"          instrument_id as string,",
-						"          last_digits as string,",
-						"          month as string,",
-						"          year as string,",
-						"          updated_at as timestamp,",
-						"          created_at as timestamp,",
-						"          card_type as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          id as integer,",
-						"          instrument_id as string,",
-						"          card_type as string,",
-						"          expiry_month as integer,",
-						"          expiry_year as integer,",
-						"          scheme as string,",
-						"          user_id as integer,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          deleted_at as timestamp,",
-						"          last_digits as string,",
-						"          name_on_card as string,",
-						"          scheme_local as string,",
-						"          bin as string",
-						"     ),",
-						"     format: 'table',",
-						"     tableName: 'checkout_cards',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['id','user_id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          instrument_id,",
-						"          card_type,",
-						"          expiry_month = month,",
-						"          expiry_year = year,",
-						"          scheme,",
-						"          user_id,",
-						"          created_at,",
-						"          updated_at,",
-						"          last_digits,",
-						"          name_on_card,",
-						"          scheme_local",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_feedback_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'feedback',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: true,",
-						"     updateable: false,",
-						"     upsertable: false,",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_loyalty_member_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as long,",
-						"          user_id as long,",
-						"          tenant_id as long,",
-						"          loyalty_member_id as integer,",
-						"          loyalty_id as string,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'loyalty_member',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          user_id,",
-						"          tenant_id,",
-						"          loyalty_member_id,",
-						"          loyalty_id,",
-						"          created_at,",
-						"          updated_at",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_employee_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "source2"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "selectingcityfields"
-						},
-						{
-							"name": "join1"
-						},
-						{
-							"name": "alterRow1"
-						},
-						{
-							"name": "window1"
-						},
-						{
-							"name": "filter1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          role_id as integer,",
-						"          email as string,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          is_deleted as boolean,",
-						"          first_name as string,",
-						"          last_name as string,",
-						"          mobile_number as string,",
-						"          dob as timestamp,",
-						"          country_code as string,",
-						"          country_id as integer,",
-						"          gender as string,",
-						"          user_type as string,",
-						"          availability as string,",
-						"          role_name as string,",
-						"          active as boolean,",
-						"          status as boolean,",
-						"          city as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source(output(",
-						"          id as integer,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          name as string,",
-						"          country_id as integer,",
-						"          abbreviation as string,",
-						"          city_image_url as string,",
-						"          is_visible as boolean,",
-						"          deleted_at as timestamp,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          translation_id as string,",
-						"          state_id as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'city',",
-						"     schemaName: 'public',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> source2",
-						"source2 select(mapColumn(",
-						"          city_id = id,",
-						"          name",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectingcityfields",
-						"source1, selectingcityfields join(lower(city) == name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"filter1 alterRow(upsertIf(true())) ~> alterRow1",
-						"join1 window(over(id),",
-						"     asc(role_name, true),",
-						"     final_column = rowNumber() == 1) ~> window1",
-						"window1 filter(equals(final_column,true())) ~> filter1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     input(",
-						"          id as integer,",
-						"          is_deleted as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          first_name as string,",
-						"          last_name as string,",
-						"          email as string,",
-						"          gender as string,",
-						"          country_code as string,",
-						"          mobile_number as string,",
-						"          dob as date,",
-						"          user_type as string,",
-						"          role_id as integer,",
-						"          active as boolean,",
-						"          country_id as integer,",
-						"          city_id as integer,",
-						"          vehicle_id as integer,",
-						"          status as boolean,",
-						"          availability as string,",
-						"          language_id as integer",
-						"     ),",
-						"     format: 'table',",
-						"     tableName: 'employee',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          is_deleted,",
-						"          created_at,",
-						"          updated_at,",
-						"          first_name,",
-						"          last_name,",
-						"          email,",
-						"          gender,",
-						"          country_code,",
-						"          mobile_number,",
-						"          dob,",
-						"          user_type,",
-						"          role_id,",
-						"          active,",
-						"          country_id,",
-						"          city_id,",
-						"          status,",
-						"          availability",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/address')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2193,6 +2369,210 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/address_cdc')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "select max(updated_at) as max_updated_date from address",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "address"
+								}
+							}
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "max_updated_date",
+							"value": {
+								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": {
+									"value": "SELECT DISTINCT\n    sua.id,\n    CASE\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\n        WHEN sa.address1 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ')\n        WHEN sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address2, ', ')\n        ELSE ''\n    END AS formatted_address,\n    COALESCE(COALESCE(sst_en.name, sst_ar.name),'') AS city,\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::BIGINT, NULL) AS postal_code,\n    sua.created_at,\n    sua.updated_at,\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\n    COALESCE(sa.latitude, 0) AS latitude,\n    COALESCE(sa.longitude, 0) AS longitude,\n    COALESCE(sua.default, 'false') AS is_default,\n    sua.user_id AS user_id,\n    'other' AS type,\n    COALESCE(\n        CASE \n            WHEN sa.driver_meta_data IS NOT NULL THEN sa.driver_meta_data->>'verified'\n            ELSE 'false'\n        END, 'false') AS is_verified,  -- Ensure non-null value here\n    '' AS title,\n    sa.driver_meta_data->>'notes' AS comments\nFROM\n    spree_user_addresses sua\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\nLEFT JOIN spree_state_translations sst_en ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\nLEFT JOIN spree_state_translations sst_ar ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\nWHERE (sa.id IS NOT NULL AND city IS NOT NULL)\nand sua.updated_at > '@{variables('max_updated_date')}'\nORDER BY sua.id DESC;",
+									"type": "Expression"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_address_cdc",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"max_updated_date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "User DB CDC"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/auth_ employee_cdc')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -2395,7 +2775,9 @@
 				},
 				"annotations": []
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_auth_employee_cdc')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/auth_device_token_cdc')]",
@@ -2774,723 +3156,6 @@
 				},
 				"folder": {
 					"name": "Auth DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/auth_user')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Lookup1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "is_deleted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_deleted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "user_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "user",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "email",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "email",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "password_updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp with time zone"
-										},
-										"sink": {
-											"name": "password_updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "login_type",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "login_type",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "social_id",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "social_id",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "is_email_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_email_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "mobile_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "mobile_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "password_salt",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "password_salt",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "password",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "password",
-											"type": "String",
-											"physicalType": "text"
-										}
-									},
-									{
-										"source": {
-											"name": "blacklisted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_blacklisted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "spree_api_key",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "spree_api_key",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "user"
-								}
-							}
-						]
-					},
-					{
-						"name": "Lookup1",
-						"description": "Alter sequence user_id_seq restart with 1;\nSelect 'Altering Sequence' As Update;",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "Alter sequence user_id_seq restart with 1;\nSelect 'Altering Sequence' as update;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "user"
-								}
-							},
-							"firstRowOnly": false
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Auth DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/auth_user_cdc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "fetchmaxupdateddate",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "select max(updated_at) as max_updated_date from public.user;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "user"
-								}
-							}
-						}
-					},
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set variable1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": {
-									"value": "SELECT \r\n    u.id AS user_id,\r\n    u.encrypted_password AS password,\r\n    u.password_salt,\r\n    u.email,\r\n    u.created_at,\r\n    u.updated_at,\r\n    CAST(CASE \r\n            WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n            ELSE FALSE\r\n        END AS BOOLEAN) AS is_deleted,\r\n    CURRENT_TIMESTAMP as password_updated_at,\r\n    false as is_email_verified,\r\n    u.is_phone_verified as mobile_verified,\r\n\tcase \r\n  \twhen sua.provider = 'google_oauth2' then 'google'\r\n\telse sua.provider end as login_type,\r\n\tsua.uid as social_id,\r\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\r\n\tcase \r\n\twhen u.blacklisted_at is not null Then True\r\n\tELSE false\r\n\tend as blacklisted\r\n\t\r\nFROM spree_users u\r\nleft join spree_user_authentications sua on u.id = sua.user_id\r\nwhere u.updated_at >= '@{variables('max_updated_date')}';",
-									"type": "Expression"
-								}
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings",
-									"copyBehavior": "PreserveHierarchy"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "is_deleted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_deleted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "user_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "user",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "email",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "email",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "password_updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp with time zone"
-										},
-										"sink": {
-											"name": "password_updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "login_type",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "login_type",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "social_id",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "social_id",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "is_email_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_email_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "mobile_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "mobile_verified",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "password_salt",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "password_salt",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "password",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "password",
-											"type": "String",
-											"physicalType": "text"
-										}
-									},
-									{
-										"source": {
-											"name": "blacklisted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										},
-										"sink": {
-											"name": "is_blacklisted",
-											"type": "Boolean",
-											"physicalType": "boolean"
-										}
-									},
-									{
-										"source": {
-											"name": "spree_api_key",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "spree_api_key",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Set variable1",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "fetchmaxupdateddate",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "max_updated_date",
-							"value": {
-								"value": "@activity('fetchmaxupdateddate').output.firstRow.max_updated_date",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_auth_user_cdc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"max_updated_date": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Auth DB CDC"
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/df_auth_user_cdc')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/bin_category')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT \n  id, \n  tag AS category, \n  created_at, \n  updated_at,\n  Upper(tag) as code\nFROM \n  spree_bin_categories;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "bin_category"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
 				},
 				"annotations": []
 			},
