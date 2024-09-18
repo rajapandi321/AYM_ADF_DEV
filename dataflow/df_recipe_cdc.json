@@ -1,6 +1,9 @@
 {
 	"name": "df_recipe_cdc",
 	"properties": {
+		"folder": {
+			"name": "Product CDC"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
