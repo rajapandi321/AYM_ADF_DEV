@@ -52,6 +52,66 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": {
+							"value": "with cte as\n(SELECT\n  u.id,\n  CASE\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\n    ELSE FALSE\n  END AS is_deleted,\n  u.created_at,\n  u.updated_at,\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\n  u.email,\n  'others' as gender,\n  COALESCE(CONCAT('+', u.mobile_number_country_code),'') AS country_code,\n  LEFT(COALESCE(CASE\n    WHEN u.mobile_phone_number LIKE CONCAT(\n      '+', u.mobile_number_country_code,\n      '%'\n      ) THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\n      )\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\n      )\n    ELSE COALESCE(u.mobile_phone_number, '')\n  END, ''), 16) AS mobile_number,\n  cast(u.dob as Text) as dob ,\n  COALESCE(u.referral_code, '') AS referral_code,\n  CASE WHEN u.locale ='en' THEN 1\n\tELSE 2\n   END AS language_id,\n  a.city,\n  a.latitude,\n  a.longitude,\n--   when country_id is '0' updated as '1' \n  CASE\n    WHEN a.country_id='0' THEN '1'\n    ELSE a.country_id\n  END AS country_id,\n  True as receive_marketing_promotions,\n  case \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\t0 as balance,\n\tu.blacklisted_at,\n\tu.blacklisted_reason,\n\tROW_NUMBER() over (partition by u.id order by sua.updated_at desc) as rn\n\nFROM spree_users u\nLEFT JOIN spree_user_addresses ua ON u.id = ua.user_id AND ua.default = TRUE\nLEFT JOIN spree_addresses a ON ua.address_id = a.id\nleft join spree_user_authentications sua on u.id = sua.user_id \nORDER BY u.id ASC)\n\nselect id, is_deleted, created_at, updated_at, first_name, last_name, email, gender, country_code, mobile_number, dob, referral_code, language_id, city,\nlatitude, longitude, country_id, receive_marketing_promotions, login_type, social_id, balance, blacklisted_at, blacklisted_reason\nfrom cte \nwhere rn = 1\nand updated_at >= '@{variables('max_updated_date')}';",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings",
+							"copyBehavior": "PreserveHierarchy"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					}
+				]
 			}
 		],
 		"variables": {
