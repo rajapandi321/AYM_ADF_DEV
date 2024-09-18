@@ -97,7 +97,7 @@
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> source2",
 				"source2 select(mapColumn(",
-				"          id,",
+				"          city_id = id,",
 				"          name",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
@@ -108,7 +108,7 @@
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> join1",
 				"filter1 alterRow(upsertIf(true())) ~> alterRow1",
-				"join1 window(over(source1@id),",
+				"join1 window(over(id),",
 				"     asc(role_name, true),",
 				"     final_column = rowNumber() == 1) ~> window1",
 				"window1 filter(equals(final_column,true())) ~> filter1",
@@ -165,7 +165,7 @@
 				"          availability,",
 				"          active,",
 				"          status,",
-				"          city_id = selectingcityfields@id",
+				"          city_id = selectingcityfields@city_id",
 				"     )) ~> sink1"
 			]
 		}
