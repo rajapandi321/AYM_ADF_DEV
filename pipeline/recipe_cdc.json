@@ -1,0 +1,123 @@
+{
+	"name": "recipe_cdc",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) as max_updated_date  from recipe;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "recipe"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "max_updated_date",
+					"value": {
+						"value": "@activity('Lookup1').output.firstRow.max_updated_date",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT \r\n    au.id,\r\n    COALESCE(sket_en.name, '') AS name_en,\r\n    COALESCE(sket_en.recipe, '') AS recipe_en,\r\n    au.calories,\r\n    au.cuisine_id,\r\n    CASE WHEN regexp_replace(au.servings, '\\D*(\\d+).*', '\\1') <> '' \r\n         THEN CAST(regexp_replace(au.servings, '\\D*(\\d+).*', '\\1') AS INTEGER)\r\n         ELSE 0 \r\n    END AS servings,\r\n    au.updated_at,\r\n    au.visible AS is_visible,\r\n    au.created_at,\r\n    COALESCE(sket_en.description, '') AS description_en,\r\n    COALESCE(sket_ar.name, '') AS name_ar,\r\n    COALESCE(sket_ar.recipe, '') AS recipe_ar,\r\n    COALESCE(sket_ar.description, '') AS description_ar,\r\n    1 AS country_id,\r\n    '' AS cuisines_banner_image_url,\r\n    '' AS recipe_banner_image_url,\r\n    '' AS app_home_image_url,\r\n    0 AS position\r\nFROM \r\n    spree_kitchen_recipes au\r\nLEFT JOIN \r\n    spree_kitchen_recipe_translations sket_en ON (sket_en.spree_kitchen_recipe_id = au.id AND sket_en.locale = 'en')\r\nLEFT JOIN \r\n    spree_kitchen_recipe_translations sket_ar ON (sket_ar.spree_kitchen_recipe_id = au.id AND sket_ar.locale = 'ar')\r\nwhere au.updated_at > '@{variables('max_updated_date')}';"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"max_updated_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Product DB CDC"
+		},
+		"annotations": []
+	}
+}
