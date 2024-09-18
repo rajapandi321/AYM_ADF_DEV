@@ -1,0 +1,123 @@
+{
+	"name": "checkout_cards_cdc",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) as max_updated_date from checkout_cards",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "checkout_cards"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "max_updated_date",
+					"value": {
+						"value": "@activity('Lookup1').output.firstRow.max_updated_date",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT \r\n    a.id,\r\n    a.user_id,\r\n\tCOALESCE(a.name, '') AS name_on_card,\r\n    COALESCE(a.cc_type, '') AS scheme,\r\n    CASE \r\n        WHEN a.cc_type = 'MADA' THEN 'mada'\r\n        ELSE ''\r\n    END AS scheme_local,\r\n\tCOALESCE(a.gateway_payment_profile_id, '') AS instrument_id,\r\n\ta.last_digits,\r\n\ta.month,\r\n\ta.year,\r\n    a.updated_at,\r\n    a.created_at,\r\n\t'CREDIT' as card_type\r\nFROM   \r\n    spree_credit_cards a\r\nwhere user_id is not null\r\nand gateway_customer_profile_id is not null\r\nand a.updated_at > '@{variables('max_updated_date')}'\r\nORDER BY \r\n    id ASC;"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"max_updated_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "User DB CDC"
+		},
+		"annotations": []
+	}
+}
