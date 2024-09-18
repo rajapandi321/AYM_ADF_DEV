@@ -1,0 +1,72 @@
+{
+	"name": "df_loyalty_member_cdc",
+	"properties": {
+		"folder": {
+			"name": "User_CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as long,",
+				"          user_id as long,",
+				"          tenant_id as long,",
+				"          loyalty_member_id as integer,",
+				"          loyalty_id as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'loyalty_member',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          user_id,",
+				"          tenant_id,",
+				"          loyalty_member_id,",
+				"          loyalty_id,",
+				"          created_at,",
+				"          updated_at",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
