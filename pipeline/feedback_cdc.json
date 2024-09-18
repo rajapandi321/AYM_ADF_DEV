@@ -75,7 +75,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "select \r\nsfdrw.id,\r\nsur.first_name,\r\nsur.last_name,\r\nsur.email,\r\nsur.mobile_number_country_code as country_code,\r\nsur.mobile_phone_number as mobile_number,\r\nsfdrw.comment as message,\r\nsfdrw.created_at,\r\nsfdrw.updated_at,\r\nsfdrw.user_id\r\nfrom spree_feedback_reviews sfdrw\r\nLeft join spree_users sur on sur.id = sfdrw.user_id\r\nwhere sfdrw.updated_at >= '@{variables('max_updated_date')}';"
+						"query": {
+							"value": "select \nsfdrw.id,\nsur.first_name,\nsur.last_name,\nsur.email,\nsur.mobile_number_country_code as country_code,\nsur.mobile_phone_number as mobile_number,\nsfdrw.comment as message,\nsfdrw.created_at,\nsfdrw.updated_at,\nsfdrw.user_id\nfrom spree_feedback_reviews sfdrw\nLeft join spree_users sur on sur.id = sfdrw.user_id\nwhere sfdrw.updated_at >= '@{variables('max_updated_date')}';",
+							"type": "Expression"
+						}
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -108,6 +111,33 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
 			}
 		],
 		"variables": {
