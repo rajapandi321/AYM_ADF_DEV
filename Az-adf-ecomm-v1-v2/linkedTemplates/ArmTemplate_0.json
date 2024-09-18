@@ -741,186 +741,12 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/employee')]",
+			"name": "[concat(parameters('factoryName'), '/df_auth_device_token_cdc')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"folder": {
-					"name": "User DB"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "employee"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "city"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "StoreInDB"
-						}
-					],
-					"transformations": [
-						{
-							"name": "joiningCityTable"
-						},
-						{
-							"name": "selectingNeededColumns"
-						},
-						{
-							"name": "window1"
-						},
-						{
-							"name": "selectingRequiredColumns"
-						},
-						{
-							"name": "filteringcolumns"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          role_id as integer,",
-						"          email as string,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          is_deleted as boolean,",
-						"          first_name as string,",
-						"          last_name as string,",
-						"          mobile_number as string,",
-						"          dob as timestamp,",
-						"          country_code as string,",
-						"          country_id as integer,",
-						"          gender as string,",
-						"          user_type as string,",
-						"          availability as string,",
-						"          role_name as string,",
-						"          active as boolean,",
-						"          status as boolean,",
-						"          city as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> employee",
-						"source(output(",
-						"          id as integer,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          name as string,",
-						"          country_id as integer,",
-						"          abbreviation as string,",
-						"          city_image_url as string,",
-						"          is_visible as boolean,",
-						"          deleted_at as timestamp,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          translation_id as string,",
-						"          state_id as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'city',",
-						"     schemaName: 'public',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
-						"employee, city join(lower(city) == name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> joiningCityTable",
-						"joiningCityTable select(mapColumn(",
-						"          id = employee@id,",
-						"          role_id,",
-						"          email,",
-						"          created_at = employee@created_at,",
-						"          updated_at = employee@updated_at,",
-						"          is_deleted,",
-						"          first_name,",
-						"          last_name,",
-						"          mobile_number,",
-						"          dob,",
-						"          country_code,",
-						"          country_id = employee@country_id,",
-						"          gender,",
-						"          user_type,",
-						"          availability,",
-						"          active,",
-						"          status,",
-						"          city_id = city@id,",
-						"          role_name",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectingNeededColumns",
-						"selectingNeededColumns window(over(id),",
-						"     asc(role_name, false),",
-						"     final_column = rowNumber()==1) ~> window1",
-						"filteringcolumns select(mapColumn(",
-						"          id,",
-						"          role_id,",
-						"          email,",
-						"          created_at,",
-						"          updated_at,",
-						"          is_deleted,",
-						"          first_name,",
-						"          last_name,",
-						"          mobile_number,",
-						"          dob,",
-						"          country_code,",
-						"          country_id,",
-						"          gender,",
-						"          user_type,",
-						"          availability,",
-						"          active,",
-						"          status,",
-						"          city_id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectingRequiredColumns",
-						"window1 filter(equals(final_column,true())) ~> filteringcolumns",
-						"selectingRequiredColumns sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'employee',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: true,",
-						"     updateable: false,",
-						"     upsertable: false,",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> StoreInDB"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/order')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "Order DB"
+					"name": "Auth_CDC"
 				},
 				"type": "MappingDataFlow",
 				"typeProperties": {
@@ -931,26 +757,12 @@
 								"type": "DatasetReference"
 							},
 							"name": "source1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "city"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "ordercancellationreason"
 						}
 					],
 					"sinks": [
 						{
 							"linkedService": {
-								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
 								"type": "LinkedServiceReference"
 							},
 							"name": "sink1"
@@ -958,173 +770,134 @@
 					],
 					"transformations": [
 						{
-							"name": "join1"
-						},
-						{
-							"name": "select1"
-						},
-						{
-							"name": "join2"
-						},
-						{
-							"name": "select2"
+							"name": "alterRow1"
 						}
 					],
 					"scriptLines": [
 						"source(output(",
-						"          id as integer,",
-						"          item_total as decimal(38,18),",
-						"          total as decimal(38,18),",
-						"          status as string,",
 						"          user_id as integer,",
-						"          completed_at as timestamp,",
-						"          bill_address_id as integer,",
-						"          ship_address_id as integer,",
-						"          payment_total as decimal(38,18),",
+						"          device_id as string,",
+						"          device_type as string,",
 						"          created_at as timestamp,",
 						"          updated_at as timestamp,",
-						"          currency as string,",
-						"          item_count as integer,",
-						"          cancel_reason as string,",
-						"          cancelled_at as timestamp,",
-						"          cancelled_by as integer,",
-						"          delivery_option_id as integer,",
-						"          country_id as integer,",
-						"          payment_option_id as integer,",
-						"          city as string,",
-						"          language_id as integer",
+						"          token as string,",
+						"          user_type as string",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     ignoreNoFilesFound: false,",
 						"     format: 'parquet') ~> source1",
-						"source(output(",
-						"          id as integer,",
-						"          name as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'query',",
-						"     query: 'select id, name from city',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> city",
-						"source(output(",
-						"          id as integer,",
-						"          reason_en as string,",
-						"          reason_ar as string,",
-						"          visible as boolean,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          deleted_at as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'query',",
-						"     query: 'select * from order_cancellation_reason',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> ordercancellationreason",
-						"source1, city join(lower(city) == name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"join1 select(mapColumn(",
-						"          id = source1@id,",
-						"          item_total,",
-						"          total,",
-						"          status,",
-						"          user_id,",
-						"          completed_at,",
-						"          bill_address_id,",
-						"          ship_address_id,",
-						"          payment_total,",
-						"          created_at,",
-						"          updated_at,",
-						"          currency,",
-						"          item_count,",
-						"          cancelled_at,",
-						"          cancelled_by,",
-						"          delivery_option_id,",
-						"          country_id,",
-						"          payment_option_id,",
-						"          language_id,",
-						"          city_id = city@id,",
-						"          cancel_reason",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1, ordercancellationreason join(cancel_reason == reason_en,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join2",
-						"join2 select(mapColumn(",
-						"          id = select1@id,",
-						"          item_total,",
-						"          total,",
-						"          status,",
-						"          user_id,",
-						"          completed_at,",
-						"          bill_address_id,",
-						"          ship_address_id,",
-						"          payment_total,",
-						"          created_at = select1@created_at,",
-						"          updated_at = select1@updated_at,",
-						"          currency,",
-						"          item_count,",
-						"          cancelled_at,",
-						"          cancelled_by,",
-						"          delivery_option_id,",
-						"          country_id,",
-						"          payment_option_id,",
-						"          language_id,",
-						"          city_id,",
-						"          order_cancellation_id = ordercancellationreason@id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select2",
-						"select2 sink(allowSchemaDrift: true,",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'table',",
-						"     tableName: 'order',",
+						"     tableName: 'device_token',",
 						"     schemaName: 'public',",
 						"     deletable: false,",
-						"     insertable: true,",
+						"     insertable: false,",
 						"     updateable: false,",
-						"     upsertable: false,",
+						"     upsertable: true,",
+						"     keys:['user_id'],",
 						"     store: 'postgres',",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true,",
 						"     mapColumn(",
-						"          id,",
-						"          item_total,",
-						"          total,",
-						"          status,",
 						"          user_id,",
-						"          completed_at,",
-						"          bill_address_id,",
-						"          ship_address_id,",
-						"          payment_total,",
+						"          device_id,",
+						"          device_type,",
 						"          created_at,",
 						"          updated_at,",
-						"          currency,",
-						"          item_count,",
-						"          cancelled_at,",
-						"          cancelled_by,",
-						"          delivery_option_id,",
-						"          country_id,",
-						"          payment_option_id,",
-						"          language_id,",
-						"          city_id,",
-						"          order_cancellation_id",
+						"          token,",
+						"          user_type",
 						"     )) ~> sink1"
 					]
 				}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_auth_employee_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Auth_CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          user as integer,",
+						"          password as string,",
+						"          password_salt as string,",
+						"          email as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          is_deleted as boolean,",
+						"          password_updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'employee',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['user'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          user,",
+						"          password,",
+						"          password_salt,",
+						"          email,",
+						"          created_at,",
+						"          updated_at,",
+						"          is_deleted,",
+						"          password_updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
 			]
 		}
 	]
