@@ -1,0 +1,162 @@
+{
+	"name": "df_employee_cdc",
+	"properties": {
+		"folder": {
+			"name": "User_CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectingcityfields"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          role_id as integer,",
+				"          email as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          is_deleted as boolean,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          mobile_number as string,",
+				"          dob as timestamp,",
+				"          country_code as string,",
+				"          country_id as integer,",
+				"          gender as string,",
+				"          user_type as string,",
+				"          availability as string,",
+				"          role_name as string,",
+				"          active as boolean,",
+				"          status as boolean,",
+				"          city as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source(output(",
+				"          id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          name as string,",
+				"          country_id as integer,",
+				"          abbreviation as string,",
+				"          city_image_url as string,",
+				"          is_visible as boolean,",
+				"          deleted_at as timestamp,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          translation_id as string,",
+				"          state_id as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'city',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> source2",
+				"source2 select(mapColumn(",
+				"          id,",
+				"          name",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectingcityfields",
+				"source1, selectingcityfields join(lower(city) == name,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          is_deleted as boolean,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          first_name as string,",
+				"          last_name as string,",
+				"          email as string,",
+				"          gender as string,",
+				"          country_code as string,",
+				"          mobile_number as string,",
+				"          dob as date,",
+				"          user_type as string,",
+				"          role_id as integer,",
+				"          active as boolean,",
+				"          country_id as integer,",
+				"          city_id as integer,",
+				"          vehicle_id as integer,",
+				"          status as boolean,",
+				"          availability as string,",
+				"          language_id as integer",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'employee',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id = source1@id,",
+				"          role_id,",
+				"          email,",
+				"          created_at,",
+				"          updated_at,",
+				"          is_deleted,",
+				"          first_name,",
+				"          last_name,",
+				"          mobile_number,",
+				"          dob,",
+				"          country_code,",
+				"          country_id,",
+				"          gender,",
+				"          user_type,",
+				"          availability,",
+				"          active,",
+				"          status,",
+				"          city_id = selectingcityfields@id",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
