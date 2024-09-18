@@ -1,0 +1,97 @@
+{
+	"name": "address_cdc",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) as max_updated_date from address",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "address"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "max_updated_date",
+					"value": ""
+				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT DISTINCT\r\n    sua.id,\r\n    CASE\r\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\r\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\r\n        WHEN sa.address1 IS NOT NULL THEN\r\n            CONCAT(sa.address1, ' ')\r\n        WHEN sa.address2 IS NOT NULL THEN\r\n            CONCAT(sa.address2, ', ')\r\n        ELSE ''\r\n    END AS formatted_address,\r\n    COALESCE(COALESCE(sst_en.name, sst_ar.name),'') AS city,\r\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\r\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::BIGINT, NULL) AS postal_code,\r\n    sua.created_at,\r\n    sua.updated_at,\r\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\r\n    COALESCE(sa.latitude, 0) AS latitude,\r\n    COALESCE(sa.longitude, 0) AS longitude,\r\n    COALESCE(sua.default, 'false') AS is_default,\r\n    sua.user_id AS user_id,\r\n    'other' AS type,\r\n    COALESCE(\r\n        CASE \r\n            WHEN sa.driver_meta_data IS NOT NULL THEN sa.driver_meta_data->>'verified'\r\n            ELSE 'false'\r\n        END, 'false') AS is_verified,  -- Ensure non-null value here\r\n    '' AS title,\r\n    sa.driver_meta_data->>'notes' AS comments\r\nFROM\r\n    spree_user_addresses sua\r\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\r\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\r\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\r\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\r\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\r\nLEFT JOIN spree_state_translations sst_en ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\r\nLEFT JOIN spree_state_translations sst_ar ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\r\nWHERE (sa.id IS NOT NULL AND city IS NOT NULL)\r\nand updated_at >= '@{variables('max_updated_date')}'\r\nORDER BY sua.id DESC;"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"max_updated_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "User DB CDC"
+		},
+		"annotations": []
+	}
+}
