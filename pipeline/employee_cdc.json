@@ -74,9 +74,8 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": "SELECT u.id,\nsru.role_id,\nu.email,\nu.created_at,\nu.updated_at,\nCASE\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\n    ELSE FALSE\n  END AS is_deleted,\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\n  LEFT(COALESCE(CASE\n    WHEN u.mobile_phone_number LIKE CONCAT(\n      '+', u.mobile_number_country_code,\n      '%'\n      ) THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\n      )\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\n      )\n    ELSE COALESCE(u.mobile_phone_number, '')\n  END, ''), 16) AS mobile_number,\n  u.dob,\n  COALESCE(\n  CONCAT('+', u.mobile_number_country_code),\n  ''\n  ) AS country_code,\n  CASE WHEN sa.country_id='0' THEN '1'\n    ELSE sa.country_id\n  END AS country_id,\n\t'others' as gender,\n\t'admin' as user_type,\n\t'available' as availability,\n  sr.name as role_name,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS active,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS status,\n  sa.city\nfrom spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\nleft join spree_addresses sa on sua.address_id = sa.id\nwhere u.updated_at > '@{variables('max_updated_date')}'\norder by u.id asc",
-						"partitionOption": "None"
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT u.id,\r\nsru.role_id,\r\nu.email,\r\nu.created_at,\r\nu.updated_at,\r\nCASE\r\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n    ELSE FALSE\r\n  END AS is_deleted,\r\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\r\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\r\n  LEFT(COALESCE(CASE\r\n    WHEN u.mobile_phone_number LIKE CONCAT(\r\n      '+', u.mobile_number_country_code,\r\n      '%'\r\n      ) THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\r\n      )\r\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\r\n      )\r\n    ELSE COALESCE(u.mobile_phone_number, '')\r\n  END, ''), 16) AS mobile_number,\r\n  u.dob,\r\n  COALESCE(\r\n  CONCAT('+', u.mobile_number_country_code),\r\n  ''\r\n  ) AS country_code,\r\n  CASE WHEN sa.country_id='0' THEN '1'\r\n    ELSE sa.country_id\r\n  END AS country_id,\r\n\t'others' as gender,\r\n\t'admin' as user_type,\r\n\t'available' as availability,\r\n  sr.name as role_name,\r\n\tCASE\r\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\r\n    ELSE TRUE\r\n  END AS active,\r\n\tCASE\r\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\r\n    ELSE TRUE\r\n  END AS status,\r\n  sa.city\r\nfrom spree_users u\r\ninner join spree_roles_users sru on sru.user_id = u.id\r\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\r\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\r\nleft join spree_addresses sa on sua.address_id = sa.id\r\nwhere u.updated_at > '@{variables('max_updated_date')}'\r\norder by u.id asc"
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -99,11 +98,8 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "DS_V2_USER_DB_PRODUCTION",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "employee"
-						}
+						"referenceName": "DS_V1_PRODUCTION",
+						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
