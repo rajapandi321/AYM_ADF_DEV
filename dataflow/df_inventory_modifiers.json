@@ -1,0 +1,90 @@
+{
+	"name": "df_inventory_modifiers",
+	"properties": {
+		"folder": {
+			"name": "Product CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          product_id as integer,",
+				"          action_price as double,",
+				"          track_stock as boolean,",
+				"          supermarket_id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          sale_price as double,",
+				"          sale_start_date as timestamp,",
+				"          sale_start_time as string,",
+				"          sale_end_date as timestamp,",
+				"          sale_end_time as string,",
+				"          availability_start_date as timestamp,",
+				"          availability_end_date as timestamp,",
+				"          stock_quantity as integer,",
+				"          cost_price as decimal(38,18)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'inventory_modifiers',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          product_id,",
+				"          action_price,",
+				"          track_stock,",
+				"          supermarket_id,",
+				"          created_at,",
+				"          updated_at,",
+				"          sale_price,",
+				"          sale_start_date,",
+				"          sale_start_time,",
+				"          sale_end_date,",
+				"          sale_end_time,",
+				"          availability_start_date,",
+				"          availability_end_date,",
+				"          stock_quantity,",
+				"          cost_price",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
