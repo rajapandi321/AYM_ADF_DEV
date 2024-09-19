@@ -29,6 +29,9 @@
 		"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 			"value": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_AWS_Image_Source_secretAccessKey": {
+			"value": ""
+		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"value": "https://azecom2np-keyvault.vault.azure.net/"
 		},
@@ -40,6 +43,9 @@
 		},
 		"LS_V1_PRODUCTION_properties_typeProperties_username": {
 			"value": "readonly_cred"
+		},
+		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+			"value": "AKIAUMMQEMX5VPZSYA6E"
 		},
 		"containerUri": {
 			"value": ""

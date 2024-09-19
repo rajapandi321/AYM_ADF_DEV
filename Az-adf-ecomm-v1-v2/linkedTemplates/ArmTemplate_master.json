@@ -45,6 +45,10 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_AWS_Image_Source_secretAccessKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'secretAccessKey' of 'LS_AWS_Image_Source'"
+		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://azecom2np-keyvault.vault.azure.net/"
@@ -60,6 +64,10 @@
 		"LS_V1_PRODUCTION_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "readonly_cred"
+		},
+		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+			"type": "string",
+			"defaultValue": "AKIAUMMQEMX5VPZSYA6E"
 		},
 		"containerUri": {
 			"type": "string",
@@ -94,6 +102,9 @@
 					"LS_V1_PRODUCTION_password": {
 						"value": "[parameters('LS_V1_PRODUCTION_password')]"
 					},
+					"LS_AWS_Image_Source_secretAccessKey": {
+						"value": "[parameters('LS_AWS_Image_Source_secretAccessKey')]"
+					},
 					"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]"
 					},
@@ -123,6 +134,9 @@
 					},
 					"LS_V1_PRODUCTION_properties_typeProperties_username": {
 						"value": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_username')]"
+					},
+					"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+						"value": "[parameters('LS_AWS_Image_Source_properties_typeProperties_accessKeyId')]"
 					}
 				}
 			},
@@ -226,6 +240,26 @@
 			},
 			"dependsOn": [
 				"[resourceId('Microsoft.Resources/deployments', 'Az-adf-ecomm-v1-v2_ArmTemplate_4')]"
+			]
+		},
+		{
+			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_6",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_6.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'Az-adf-ecomm-v1-v2_ArmTemplate_5')]"
 			]
 		}
 	]

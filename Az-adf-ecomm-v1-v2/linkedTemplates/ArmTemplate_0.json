@@ -15,6 +15,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'LS_V1_PRODUCTION'"
 		},
+		"LS_AWS_Image_Source_secretAccessKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'secretAccessKey' of 'LS_AWS_Image_Source'"
+		},
 		"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_DEV_SERVER'",
@@ -60,6 +64,10 @@
 		"LS_V1_PRODUCTION_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "readonly_cred"
+		},
+		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+			"type": "string",
+			"defaultValue": "AKIAUMMQEMX5VPZSYA6E"
 		}
 	},
 	"variables": {
@@ -112,6 +120,25 @@
 					"authenticationType": "Basic",
 					"connectionTimeout": 600,
 					"commandTimeout": 0
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AWS_Image_Source')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AmazonS3",
+				"typeProperties": {
+					"serviceUrl": "https://s3.amazonaws.com",
+					"accessKeyId": "[parameters('LS_AWS_Image_Source_properties_typeProperties_accessKeyId')]",
+					"secretAccessKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_AWS_Image_Source_secretAccessKey')]"
+					},
+					"authenticationType": "AccessKey"
 				}
 			},
 			"dependsOn": []
@@ -294,6 +321,50 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_aws_image_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AWS_Image_Source",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AmazonS3Location",
+						"bucketName": "imagemigration-to-azureaccount"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AWS_Image_Source')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Azure_Destination_Image')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_CrossDB_Connection_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"container": "production-migration"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_CrossDB_Connection_Storage')]"
 			]
 		},
 		{
@@ -619,299 +690,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/country')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User DB"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "currency"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "storeindb"
-						}
-					],
-					"transformations": [
-						{
-							"name": "joiningCurrency"
-						},
-						{
-							"name": "selectingrequiredFields"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          iso_country_code as string,",
-						"          name as string,",
-						"          currency as string,",
-						"          updated_at as timestamp,",
-						"          created_at as timestamp,",
-						"          default_super_market_id as integer,",
-						"          currency_precision as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source(output(",
-						"          id as integer,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          name as string,",
-						"          deleted_at as timestamp",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'currency',",
-						"     schemaName: 'public',",
-						"     store: 'postgres',",
-						"     isolationLevel: 'READ_UNCOMMITTED') ~> currency",
-						"source1, currency join(currency == currency@name,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> joiningCurrency",
-						"joiningCurrency select(mapColumn(",
-						"          id = source1@id,",
-						"          iso_country_code,",
-						"          name = source1@name,",
-						"          updated_at = source1@updated_at,",
-						"          created_at = source1@created_at,",
-						"          default_super_market_id,",
-						"          currency_precision,",
-						"          currency_id = currency@id",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> selectingrequiredFields",
-						"selectingrequiredFields sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'country',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: true,",
-						"     updateable: false,",
-						"     upsertable: false,",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          iso_country_code,",
-						"          name,",
-						"          updated_at,",
-						"          created_at,",
-						"          default_super_market_id,",
-						"          currency_precision,",
-						"          currency_id",
-						"     )) ~> storeindb"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_address_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "User_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          id as integer,",
-						"          formatted_address as string,",
-						"          city as string,",
-						"          country as string,",
-						"          postal_code as long,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          district as string,",
-						"          latitude as double,",
-						"          longitude as double,",
-						"          is_default as boolean,",
-						"          user_id as integer,",
-						"          type as string,",
-						"          is_verified as string,",
-						"          title as string,",
-						"          comments as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'address',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          id,",
-						"          formatted_address,",
-						"          city,",
-						"          country,",
-						"          postal_code,",
-						"          created_at,",
-						"          updated_at,",
-						"          district,",
-						"          latitude,",
-						"          longitude,",
-						"          is_default,",
-						"          user_id,",
-						"          type,",
-						"          is_verified,",
-						"          title,",
-						"          comments",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_auth_device_token_cdc')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"folder": {
-					"name": "Auth_CDC"
-				},
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference"
-							},
-							"name": "source1"
-						}
-					],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink1"
-						}
-					],
-					"transformations": [
-						{
-							"name": "alterRow1"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          user_id as integer,",
-						"          device_id as string,",
-						"          device_type as string,",
-						"          created_at as timestamp,",
-						"          updated_at as timestamp,",
-						"          token as string,",
-						"          user_type as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false,",
-						"     format: 'parquet') ~> source1",
-						"source1 alterRow(upsertIf(true())) ~> alterRow1",
-						"alterRow1 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'table',",
-						"     tableName: 'device_token',",
-						"     schemaName: 'public',",
-						"     deletable: false,",
-						"     insertable: false,",
-						"     updateable: false,",
-						"     upsertable: true,",
-						"     keys:['user_id'],",
-						"     store: 'postgres',",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     mapColumn(",
-						"          user_id,",
-						"          device_id,",
-						"          device_type,",
-						"          created_at,",
-						"          updated_at,",
-						"          token,",
-						"          user_type",
-						"     )) ~> sink1"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Intermiadate_Result')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
 			]
 		}
 	]
