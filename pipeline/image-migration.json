@@ -30,7 +30,10 @@
 						"type": "BinarySink",
 						"storeSettings": {
 							"type": "AzureBlobStorageWriteSettings",
-							"copyBehavior": "PreserveHierarchy"
+							"copyBehavior": {
+								"value": "@concat(pipeline().parameters.folderPath,'/','item().name')",
+								"type": "Expression"
+							}
 						}
 					},
 					"enableStaging": false
@@ -49,6 +52,12 @@
 				]
 			}
 		],
+		"parameters": {
+			"folderPath": {
+				"type": "string",
+				"defaultValue": "production-migration"
+			}
+		},
 		"annotations": []
 	}
 }
