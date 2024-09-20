@@ -162,6 +162,8 @@
 			{
 				"name": "increaseseqID",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "time_slot table",
