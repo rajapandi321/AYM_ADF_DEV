@@ -122,6 +122,42 @@
 						}
 					}
 				}
+			},
+			{
+				"name": "Altering Sequence ID",
+				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"super_market_payment\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE super_market_payment_id_seq RESTART WITH ' || (max_id + 1000);\r\nEND $$;\r\nSelect 'Altering Sequence ID' as Update;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "super_market_payment"
+						}
+					}
+				}
 			}
 		],
 		"folder": {
