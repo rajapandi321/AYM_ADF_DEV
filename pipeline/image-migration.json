@@ -20,6 +20,7 @@
 						"storeSettings": {
 							"type": "AmazonS3ReadSettings",
 							"recursive": true,
+							"wildcardFolderPath": "*",
 							"deleteFilesAfterCompletion": false
 						},
 						"formatSettings": {
@@ -52,12 +53,6 @@
 				]
 			}
 		],
-		"parameters": {
-			"folderPath": {
-				"type": "string",
-				"defaultValue": "production-migration"
-			}
-		},
 		"annotations": []
 	}
 }
