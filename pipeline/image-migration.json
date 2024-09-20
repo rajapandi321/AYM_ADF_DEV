@@ -32,7 +32,7 @@
 						"storeSettings": {
 							"type": "AzureBlobStorageWriteSettings",
 							"copyBehavior": {
-								"value": "@concat(pipeline().parameters.folderPath,'/','item().name')",
+								"value": "@concat(pipeline().parameters.targetFolder, '/', replace(item().folderPath, 'images/', ''), '/', item().name)\n",
 								"type": "Expression"
 							}
 						}
@@ -53,6 +53,12 @@
 				]
 			}
 		],
+		"parameters": {
+			"targetFolder": {
+				"type": "String",
+				"defaultValue": "production-migration"
+			}
+		},
 		"annotations": []
 	}
 }
