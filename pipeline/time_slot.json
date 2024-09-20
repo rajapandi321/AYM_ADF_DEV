@@ -188,7 +188,10 @@
 					},
 					"dataset": {
 						"referenceName": "DS_V2_USER_DB_PRODUCTION",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "time_slot"
+						}
 					}
 				}
 			}
