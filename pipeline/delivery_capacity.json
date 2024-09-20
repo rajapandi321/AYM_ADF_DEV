@@ -281,6 +281,8 @@
 			{
 				"name": "AlteringSequenceID",
 				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "removeadditionalcolumnsadded",
