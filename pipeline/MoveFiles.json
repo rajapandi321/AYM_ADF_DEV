@@ -49,7 +49,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "FilterFiles",
+						"activity": "GetFileList",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -82,6 +82,9 @@
 									"storeSettings": {
 										"type": "AmazonS3ReadSettings",
 										"recursive": true
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
 									},
 									"recursive": false
 								},
@@ -136,30 +139,6 @@
 							]
 						}
 					]
-				}
-			},
-			{
-				"name": "FilterFiles",
-				"description": "Only files will be selected, the source-folders will not be selected.",
-				"type": "Filter",
-				"dependsOn": [
-					{
-						"activity": "GetFileList",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"items": {
-						"value": "@activity('GetFileList').output.childItems",
-						"type": "Expression"
-					},
-					"condition": {
-						"value": "@equals(item().type, 'File')",
-						"type": "Expression"
-					}
 				}
 			}
 		],
