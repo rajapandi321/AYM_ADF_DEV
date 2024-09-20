@@ -61,7 +61,7 @@
 						"value": "@activity('GetFileList').output.childItems",
 						"type": "Expression"
 					},
-					"batchCount": 20,
+					"isSequential": true,
 					"activities": [
 						{
 							"name": "CopyAFile",
