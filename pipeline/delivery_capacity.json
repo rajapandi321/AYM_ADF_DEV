@@ -279,7 +279,7 @@
 				}
 			},
 			{
-				"name": "Lookup1",
+				"name": "AlteringSequenceID",
 				"type": "Lookup",
 				"dependsOn": [
 					{
