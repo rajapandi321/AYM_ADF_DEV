@@ -58,7 +58,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('FilterFiles').output.value",
+						"value": "@activity('GetFileList').output.childItems",
 						"type": "Expression"
 					},
 					"batchCount": 20,
