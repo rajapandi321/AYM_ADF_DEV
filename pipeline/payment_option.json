@@ -52,7 +52,7 @@
 				]
 			},
 			{
-				"name": "Lookup1",
+				"name": "Alter Sequence ID",
 				"type": "Lookup",
 				"state": "Inactive",
 				"onInactiveMarkAs": "Succeeded",
