@@ -219,7 +219,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"checkout_cards\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE checkout_cards_id_seq RESTART WITH ' || (max_id + 1000);\r\nEND $$;",
+						"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"checkout_cards\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE checkout_cards_id_seq RESTART WITH ' || (max_id + 1000);\r\nEND $$;\r\nSelect 'Altering Sequence ID' as Updated;",
 						"partitionOption": "None"
 					},
 					"dataset": {
