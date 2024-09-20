@@ -398,7 +398,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"user_id_seq\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE user_id_seq RESTART WITH ' || (max_id + 1000);\r\nEND $$;\r\nSelect 'Updating Sequence ID' as Update;",
+						"query": "DO $$\nDECLARE\n    max_id INT;\nBEGIN\n    -- Step 1: Get the maximum id from the 'order' table\n    SELECT MAX(id) INTO max_id FROM \"user\";\n    \n    -- Step 2: Alter the sequence to restart with max_id + 1\n    EXECUTE 'ALTER SEQUENCE user_id_seq RESTART WITH ' || (max_id + 1000);\nEND $$;\nSelect 'Updating Sequence ID' as Update;",
 						"partitionOption": "None"
 					},
 					"dataset": {
