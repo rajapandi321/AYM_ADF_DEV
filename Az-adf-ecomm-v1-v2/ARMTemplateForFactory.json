@@ -18178,7 +18178,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/BinaryDataSource_File2')]",
+			"name": "[concat(parameters('factoryName'), '/AWS_Source_Image')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -18216,7 +18216,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/BinaryDataDestination2')]",
+			"name": "[concat(parameters('factoryName'), '/Azure_Destination_Image')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -18300,7 +18300,7 @@
 						},
 						"inputs": [
 							{
-								"referenceName": "BinaryDataSource_File2",
+								"referenceName": "AWS_Source_Image",
 								"type": "DatasetReference",
 								"parameters": {
 									"Bucket": {
@@ -18316,7 +18316,7 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "BinaryDataDestination2",
+								"referenceName": "Azure_Destination_Image",
 								"type": "DatasetReference",
 								"parameters": {
 									"Container": {
@@ -18356,8 +18356,8 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/BinaryDataSource_File2')]",
-				"[concat(variables('factoryId'), '/datasets/BinaryDataDestination2')]"
+				"[concat(variables('factoryId'), '/datasets/AWS_Source_Image')]",
+				"[concat(variables('factoryId'), '/datasets/Azure_Destination_Image')]"
 			]
 		}
 	]

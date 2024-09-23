@@ -2515,7 +2515,7 @@
 						},
 						"inputs": [
 							{
-								"referenceName": "BinaryDataSource_File2",
+								"referenceName": "AWS_Source_Image",
 								"type": "DatasetReference",
 								"parameters": {
 									"Bucket": {
@@ -2531,7 +2531,7 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "BinaryDataDestination2",
+								"referenceName": "Azure_Destination_Image",
 								"type": "DatasetReference",
 								"parameters": {
 									"Container": {
