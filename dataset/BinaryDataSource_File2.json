@@ -26,10 +26,6 @@
 				"folderPath": {
 					"value": "@{dataset().Directory}",
 					"type": "Expression"
-				},
-				"fileName": {
-					"value": "@dataset().filename",
-					"type": "Expression"
 				}
 			}
 		}
