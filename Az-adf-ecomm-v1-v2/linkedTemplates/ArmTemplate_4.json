@@ -13,75 +13,6 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/language')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "language",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_DEV",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "language"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "language"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/loyalty_member')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -3345,6 +3276,109 @@
 				},
 				"folder": {
 					"name": "Order DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/payment_option')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "payment_option",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT id,\n       name,\n       created_at,\n       updated_at,\n       deleted_at,\n       CASE\n            WHEN type = 'Spree::PaymentMethod::StoreCredit' THEN 'e-wlt'\n            WHEN type = 'Spree::Gateway::PayFort' THEN 'credit'\n            WHEN type = 'Spree::Gateway::CheckoutCom' THEN 'credit'\n            WHEN type = 'Spree::Gateway::Tamara' THEN 'tamara'\n            WHEN type = 'Spree::Gateway::BogusSimple' THEN 'bogus-simple'\n            WHEN type = 'Spree::PaymentMethod::Check' THEN 'cod'\n            WHEN type = 'Spree::Gateway::CheckoutCom::ApplePay' THEN 'a-pay'\n            WHEN type = 'Spree::Gateway::LoyaltyPoint' THEN 'loy-pts'\n            WHEN type = 'Spree::Gateway::PayFort::ApplePay' THEN 'a-pay'\n        Else '' \n\t\tEnd as code\nFROM   spree_payment_methods\nwhere name is not null\nORDER  BY id ASC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "payment_option"
+								}
+							}
+						]
+					},
+					{
+						"name": "Alter Sequence ID",
+						"type": "Lookup",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "payment_option",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "DO $$\nDECLARE\n    max_id INT;\nBEGIN\n    -- Step 1: Get the maximum id from the 'order' table\n    SELECT MAX(id) INTO max_id FROM \"payment_option\";\n    \n    -- Step 2: Alter the sequence to restart with max_id + 1\n    EXECUTE 'ALTER SEQUENCE payment_option_id_seq RESTART WITH ' || (max_id + 1000);\nEND $$;\nSelect 'Altering Sequence ID' as Update;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "payment_option"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "User DB"
 				},
 				"annotations": []
 			},

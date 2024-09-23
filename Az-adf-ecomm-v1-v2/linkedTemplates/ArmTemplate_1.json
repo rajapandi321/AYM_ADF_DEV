@@ -64,9 +64,6 @@
 					},
 					"Directory": {
 						"type": "String"
-					},
-					"filename": {
-						"type": "string"
 					}
 				},
 				"annotations": [],
@@ -80,10 +77,6 @@
 						},
 						"folderPath": {
 							"value": "@{dataset().Directory}",
-							"type": "Expression"
-						},
-						"fileName": {
-							"value": "@dataset().filename",
 							"type": "Expression"
 						}
 					}
@@ -107,9 +100,6 @@
 					},
 					"Directory": {
 						"type": "String"
-					},
-					"filename": {
-						"type": "string"
 					}
 				},
 				"annotations": [],
