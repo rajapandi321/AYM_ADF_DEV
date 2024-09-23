@@ -4,7 +4,7 @@
 		"description": "Move files from one folder to another folder",
 		"activities": [
 			{
-				"name": "CopyAFile_copy1",
+				"name": "Moving_The _Image_Files",
 				"description": "Copy a file from the source store to the destination store.",
 				"type": "Copy",
 				"dependsOn": [],
