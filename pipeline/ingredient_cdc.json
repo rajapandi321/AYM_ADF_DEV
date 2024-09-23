@@ -1,0 +1,14 @@
+{
+	"name": "ingredient_cdc",
+	"properties": {
+		"variables": {
+			"max_updated_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Product DB CDC"
+		},
+		"annotations": []
+	}
+}
