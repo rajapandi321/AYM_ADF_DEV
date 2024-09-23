@@ -1,5 +1,5 @@
 {
-	"name": "BinaryDataSource_File2",
+	"name": "AWS_Source_Image",
 	"properties": {
 		"description": "It describes the file in the data source store.",
 		"linkedServiceName": {

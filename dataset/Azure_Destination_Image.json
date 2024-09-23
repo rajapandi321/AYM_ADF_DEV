@@ -1,5 +1,5 @@
 {
-	"name": "BinaryDataDestination2",
+	"name": "Azure_Destination_Image",
 	"properties": {
 		"description": "It describes the destination store.",
 		"linkedServiceName": {
