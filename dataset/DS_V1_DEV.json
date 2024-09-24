@@ -5,20 +5,11 @@
 			"referenceName": "LS_V1_DEV",
 			"type": "LinkedServiceReference"
 		},
-		"parameters": {
-			"table_name": {
-				"type": "string"
-			}
-		},
 		"annotations": [],
 		"type": "PostgreSqlV2Table",
 		"schema": [],
 		"typeProperties": {
-			"schema": "public",
-			"table": {
-				"value": "@dataset().table_name",
-				"type": "Expression"
-			}
+			"schema": "public"
 		}
 	}
 }
