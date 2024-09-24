@@ -140,7 +140,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_inventory_modifiers",
+						"referenceName": "df_nutritional_facts_cdc",
 						"type": "DataFlowReference"
 					},
 					"compute": {
