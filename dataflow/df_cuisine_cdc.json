@@ -61,6 +61,7 @@
 				"     insertable: false,",
 				"     updateable: false,",
 				"     upsertable: true,",
+				"     keys:['id'],",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
