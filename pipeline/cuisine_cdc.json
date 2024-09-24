@@ -109,7 +109,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT \n  id, \n  name_en, \n  name_ar, \n  created_at, \n  updated_at, \n  sort_order as position \nFROM \n  spree_kitchen_cuisines\nwhere updated_at > '2024-04-12'\nOrder by id ASC;"
+						"query": {
+							"value": "SELECT \n  id, \n  name_en, \n  name_ar, \n  created_at, \n  updated_at, \n  sort_order as position \nFROM \n  spree_kitchen_cuisines\nwhere updated_at > '@{variables('max_updated_date')}'\nOrder by id ASC;",
+							"type": "Expression"
+						}
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -132,7 +135,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "DS_V1_PRODUCTION",
+						"referenceName": "DS_V1_DEV",
 						"type": "DatasetReference"
 					}
 				],
