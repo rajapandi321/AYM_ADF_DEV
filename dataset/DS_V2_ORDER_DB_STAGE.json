@@ -1,0 +1,27 @@
+{
+	"name": "DS_V2_ORDER_DB_STAGE",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_V2_ORDER_DB_STAGE",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"table_name": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "V2 Dataset Stage(prod)"
+		},
+		"annotations": [],
+		"type": "AzurePostgreSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "public",
+			"table": {
+				"value": "@dataset().table_name",
+				"type": "Expression"
+			}
+		}
+	}
+}
