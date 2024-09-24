@@ -1,6 +1,186 @@
 {
 	"name": "nutritional_facts_cdc",
 	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) as max_updated_date from nutritional_facts",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_STAGE",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "nutritional_facts",
+							"database_name": "product-db-stage"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "max_updated_date",
+					"value": {
+						"value": "@activity('Lookup1').output.firstRow.max_updated_date",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": {
+							"value": "WITH json_to_extract AS\n(\n       SELECT id,\n              quantity_en AS quantity,\n              product_id,\n              created_at,\n              updated_at,\n              quantity_ar,\n              nutrients :: jsonb AS json_data\n       FROM   spree_nutritional_facts )\nSELECT    id,\n          quantity,\n          quantity_ar,\n          product_id,\n          calories,\n          total_fat,\n          saturated_fat,\n          trans_fat,\n          cholesterol,\n          total_carbohydrates,\n          sugar,\n          dietary_fiber,\n          protein,\n          salt,\n          sodium,\n          iron,\n          calcium,\n          vitamin_a,\n          vitamin_c,\n          vitamin_d,\n          ph,\n          created_at,\n          updated_at\nFROM      json_to_extract\nLEFT JOIN lateral\n          (\n                 Select ( Regexp_matches( json_data :: text, 'calories:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]            AS calories,\n                        ( regexp_matches( json_data :: text, 'total_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS total_fat,\n                        ( regexp_matches( json_data :: text, 'saturated_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]       AS saturated_fat,\n                        ( regexp_matches( json_data :: text, 'trans_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS trans_fat,\n                        ( regexp_matches( json_data :: text, 'cholesterol:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]         AS cholesterol,\n                        ( regexp_matches( json_data :: text, 'total_carbohydrates:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1] AS total_carbohydrates,\n                        ( regexp_matches( json_data :: text, 'sugar:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]               AS sugar,\n                        ( regexp_matches( json_data :: text, 'fiber:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]               AS dietary_fiber,\n                        ( regexp_matches( json_data :: text, 'protein:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]             AS protein,\n                        ( regexp_matches( json_data :: text, 'salt:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                AS salt,\n                        ( regexp_matches( json_data :: text, 'sodium:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]              AS sodium,\n                        ( regexp_matches( json_data :: text, 'iron:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                AS iron,\n                        ( regexp_matches( json_data :: text, 'calcium:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]             AS calcium,\n                        ( regexp_matches( json_data :: text, 'vitamin_a:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_a,\n                        ( regexp_matches( json_data :: text, 'vitamin_c:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_c,\n                        ( regexp_matches( json_data :: text, 'vitamin_d:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_d,\n                        ( regexp_matches( json_data :: text, 'ph:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                  AS ph ) AS nutrient_values\nON        true\nwhere updated_at = '@{variables('max_updated_date')}'\nORDER BY  id ASC;",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_DEV",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_inventory_modifiers",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Delete1",
+				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "Data flow1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					}
+				}
+			}
+		],
 		"variables": {
 			"max_updated_date": {
 				"type": "String"
