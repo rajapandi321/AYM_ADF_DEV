@@ -1,0 +1,36 @@
+{
+	"name": "DS_V2_STAGE",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_V2_STAGE",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"database_name": {
+					"value": "@dataset().database_name",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"table_name": {
+				"type": "string"
+			},
+			"database_name": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "V2 Dataset Stage(prod)"
+		},
+		"annotations": [],
+		"type": "AzurePostgreSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "public",
+			"table": {
+				"value": "@dataset().table_name",
+				"type": "Expression"
+			}
+		}
+	}
+}
