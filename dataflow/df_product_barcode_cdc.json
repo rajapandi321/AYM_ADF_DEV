@@ -14,9 +14,9 @@
 			],
 			"sinks": [
 				{
-					"dataset": {
-						"referenceName": "DS_V2_PRODUCT_DB_DEV",
-						"type": "DatasetReference"
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
 					},
 					"name": "sink1"
 				}
@@ -41,18 +41,30 @@
 				"source1 alterRow(upsertIf(true())) ~> alterRow1",
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:false,",
-				"     updateable:false,",
-				"     upsertable:true,",
-				"     keys:['id'],",
+				"     input(",
+				"          id as integer,",
+				"          name as string,",
+				"          barcode as string,",
+				"          product_id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp",
+				"     ),",
 				"     format: 'table',",
+				"     tableName: 'product_barcode',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     mapColumn(",
 				"          id,",
-				"          product_id,",
 				"          barcode,",
+				"          product_id,",
 				"          created_at,",
 				"          updated_at",
 				"     )) ~> sink1"
