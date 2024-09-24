@@ -17,12 +17,16 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "select max(updated_at) as max_updated_date from ingredient;",
+						"query": "select max(updated_at) as max_updated_date\r\nfrom ingredient;",
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-						"type": "DatasetReference"
+						"referenceName": "DS_V2_STAGE",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "ingredient",
+							"database_name": "product-db-stage"
+						}
 					}
 				}
 			},
@@ -74,11 +78,34 @@
 						"type": "PostgreSqlV2Source",
 						"query": "select \n  id, \n  name_en, \n  name_ar, \n  taxon_id, \n  kitchen_recipe_id as recipe_id, \n  quantity, \n  COALESCE(Cast(measurement AS CHARACTER varying),'') AS measurement,\n  created_at, \n  updated_at \nfrom \n  spree_kitchen_ingredients\nwhere updated_at > '@{variables('max_updated_date')}'\norder by id ASC;"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
-						"referenceName": "DS_V1_PRODUCTION",
+						"referenceName": "DS_V1_DEV",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
 						"type": "DatasetReference"
 					}
 				]
@@ -86,6 +113,8 @@
 			{
 				"name": "Data flow1",
 				"type": "ExecuteDataFlow",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
@@ -117,6 +146,8 @@
 			{
 				"name": "Delete1",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Data flow1",
