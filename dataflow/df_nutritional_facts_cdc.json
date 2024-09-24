@@ -1,0 +1,127 @@
+{
+	"name": "df_nutritional_facts_cdc",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          quantity as string,",
+				"          quantity_ar as string,",
+				"          product_id as integer,",
+				"          calories as string,",
+				"          total_fat as string,",
+				"          saturated_fat as string,",
+				"          trans_fat as string,",
+				"          cholesterol as string,",
+				"          total_carbohydrates as string,",
+				"          sugar as string,",
+				"          dietary_fiber as string,",
+				"          protein as string,",
+				"          salt as string,",
+				"          sodium as string,",
+				"          iron as string,",
+				"          calcium as string,",
+				"          vitamin_a as string,",
+				"          vitamin_c as string,",
+				"          vitamin_d as string,",
+				"          ph as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          product_id as integer,",
+				"          quantity as string,",
+				"          quantity_ar as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          calories as string,",
+				"          total_fat as string,",
+				"          saturated_fat as string,",
+				"          trans_fat as string,",
+				"          cholesterol as string,",
+				"          total_carbohydrates as string,",
+				"          sugar as string,",
+				"          dietary_fiber as string,",
+				"          protein as string,",
+				"          salt as string,",
+				"          sodium as string,",
+				"          iron as string,",
+				"          calcium as string,",
+				"          vitamin_a as string,",
+				"          vitamin_c as string,",
+				"          vitamin_d as string,",
+				"          ph as string",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'nutritional_facts',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          product_id,",
+				"          quantity,",
+				"          quantity_ar,",
+				"          created_at,",
+				"          updated_at,",
+				"          calories,",
+				"          total_fat,",
+				"          saturated_fat,",
+				"          trans_fat,",
+				"          cholesterol,",
+				"          total_carbohydrates,",
+				"          sugar,",
+				"          dietary_fiber,",
+				"          protein,",
+				"          salt,",
+				"          sodium,",
+				"          iron,",
+				"          calcium,",
+				"          vitamin_a,",
+				"          vitamin_c,",
+				"          vitamin_d,",
+				"          ph",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
