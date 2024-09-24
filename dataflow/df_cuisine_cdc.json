@@ -30,13 +30,30 @@
 				}
 			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          id as integer,",
+				"          name_en as string,",
+				"          name_ar as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          position as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> source1",
 				"source1 alterRow(upsertIf(true())) ~> alterRow1",
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          name_en as string,",
+				"          name_ar as string,",
+				"          position as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp",
+				"     ),",
 				"     format: 'table',",
 				"     tableName: 'cuisine',",
 				"     schemaName: 'public',",
@@ -46,7 +63,15 @@
 				"     upsertable: true,",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink1"
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          name_en,",
+				"          name_ar,",
+				"          position,",
+				"          created_at,",
+				"          updated_at",
+				"     )) ~> sink1"
 			]
 		}
 	}
