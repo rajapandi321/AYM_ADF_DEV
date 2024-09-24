@@ -21,10 +21,11 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "DS_V2_USER_DB_PRODUCTION",
+						"referenceName": "DS_V2_STAGE",
 						"type": "DatasetReference",
 						"parameters": {
-							"table_name": "cuisine"
+							"table_name": "cuisine",
+							"database_name": "product-db-stage"
 						}
 					}
 				}
@@ -56,6 +57,8 @@
 			{
 				"name": "Data flow1",
 				"type": "ExecuteDataFlow",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Copy data1",
@@ -143,6 +146,8 @@
 			{
 				"name": "Delete1",
 				"type": "Delete",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Data flow1",
