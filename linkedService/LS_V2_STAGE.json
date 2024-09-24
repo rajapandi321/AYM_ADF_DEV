@@ -1,0 +1,23 @@
+{
+	"name": "LS_V2_STAGE",
+	"properties": {
+		"parameters": {
+			"database_name": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzurePostgreSql",
+		"typeProperties": {
+			"connectionString": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=@{linkedService().database_name};UID=eccommercepostgres;EncryptionMethod=0",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_Danube_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+			}
+		}
+	}
+}
