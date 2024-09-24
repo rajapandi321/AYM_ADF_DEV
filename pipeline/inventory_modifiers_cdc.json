@@ -75,7 +75,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT id,\r\n       product_id,\r\n       Cast(action_price as double precision),\r\n       action_in_stock AS track_stock,\r\n       COALESCE(rule_supermarket_id, -1) AS supermarket_id,\r\n       created_at,\r\n       updated_at,\r\n\t   Cast(action_sale_price as double precision) AS sale_price,\r\n       Date(action_sale_start) AS sale_start_date,\r\n       Substring(To_char(action_sale_start, 'HH24:MI:SS'), 1, 8) AS sale_start_time,\r\n       Date(action_sale_end) AS sale_end_date,\r\n       Substring(To_char(action_sale_end, 'HH24:MI:SS'), 1, 8)   AS sale_end_time,\r\n       Date(availability_start_time) AS availability_start_date,\r\n       -- availability_start_time (timestamp without time zone so we need to extract using string manipulation) \r\n       Date(availability_end_time) AS availability_end_date,\r\n       stock_quantity,\r\n       action_sale_price AS cost_price\r\nFROM   spree_product_inventory_modifiers\r\nwhere updated_at > '@{variables('max_updated_date')}'\r\norder by id ASC;"
+						"query": {
+							"value": "SELECT id,\r\n       product_id,\r\n       Cast(action_price as double precision),\r\n       action_in_stock AS track_stock,\r\n       COALESCE(rule_supermarket_id, -1) AS supermarket_id,\r\n       created_at,\r\n       updated_at,\r\n\t   Cast(action_sale_price as double precision) AS sale_price,\r\n       Date(action_sale_start) AS sale_start_date,\r\n       Substring(To_char(action_sale_start, 'HH24:MI:SS'), 1, 8) AS sale_start_time,\r\n       Date(action_sale_end) AS sale_end_date,\r\n       Substring(To_char(action_sale_end, 'HH24:MI:SS'), 1, 8)   AS sale_end_time,\r\n       Date(availability_start_time) AS availability_start_date,\r\n       -- availability_start_time (timestamp without time zone so we need to extract using string manipulation) \r\n       Date(availability_end_time) AS availability_end_date,\r\n       stock_quantity,\r\n       action_sale_price AS cost_price\r\nFROM   spree_product_inventory_modifiers\r\nwhere updated_at > '@{variables('max_updated_date')}'\r\norder by id ASC;",
+							"type": "Expression"
+						}
 					},
 					"sink": {
 						"type": "ParquetSink",
@@ -130,7 +133,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_inventory_modifiers",
+						"referenceName": "df_inventory_modifiers_cdc",
 						"type": "DataFlowReference"
 					},
 					"compute": {
