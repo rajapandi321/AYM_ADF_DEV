@@ -102,7 +102,7 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "DS_V1_PRODUCTION",
+						"referenceName": "DS_V1_DEV",
 						"type": "DatasetReference"
 					}
 				],
