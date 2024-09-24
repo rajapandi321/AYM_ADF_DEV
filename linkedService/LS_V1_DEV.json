@@ -1,0 +1,23 @@
+{
+	"name": "LS_V1_DEV",
+	"properties": {
+		"annotations": [],
+		"type": "PostgreSqlV2",
+		"typeProperties": {
+			"server": "ec2-52-210-154-220.eu-west-1.compute.amazonaws.com",
+			"port": 5432,
+			"database": "d23es3el7cts8g",
+			"username": "ueoedg6blrr0n4",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_Danube_Key_Vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "v1-dev-password"
+			},
+			"sslMode": 2,
+			"authenticationType": "Basic"
+		}
+	}
+}
