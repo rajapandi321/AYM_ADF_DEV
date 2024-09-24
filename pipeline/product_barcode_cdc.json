@@ -141,12 +141,7 @@
 				"typeProperties": {
 					"dataflow": {
 						"referenceName": "df_product_barcode_cdc",
-						"type": "DataFlowReference",
-						"datasetParameters": {
-							"sink1": {
-								"table_name": "product_barcode"
-							}
-						}
+						"type": "DataFlowReference"
 					},
 					"compute": {
 						"coreCount": 8,
