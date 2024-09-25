@@ -16,12 +16,17 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "PostgreSqlV2Source",
-						"query": "select max(updated_at) as max_updated_date from promotion;"
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) as max_updated_date from promotion;",
+						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "DS_V1_DEV",
-						"type": "DatasetReference"
+						"referenceName": "DS_V2_STAGE",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "promotion",
+							"database_name": "product-db-stage"
+						}
 					}
 				}
 			},
