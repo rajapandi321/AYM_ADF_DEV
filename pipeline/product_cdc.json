@@ -118,7 +118,7 @@
 				"type": "ExecuteDataFlow",
 				"dependsOn": [
 					{
-						"activity": "Lookup2",
+						"activity": "Copy data1",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -173,40 +173,6 @@
 						"type": "AzureBlobStorageReadSettings",
 						"recursive": true,
 						"enablePartitionDiscovery": false
-					}
-				}
-			},
-			{
-				"name": "Lookup2",
-				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "Copy data1",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "AzurePostgreSqlSource",
-						"query": "Alter table product add column temp_supplier_code varchar(200);\nSELECT 'Adding Supplier_Code' As Update",
-						"partitionOption": "None"
-					},
-					"dataset": {
-						"referenceName": "DS_Product_DB_Stage",
-						"type": "DatasetReference",
-						"parameters": {
-							"table_name": "PRODUCT"
-						}
 					}
 				}
 			}
