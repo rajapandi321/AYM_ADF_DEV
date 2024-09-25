@@ -5,8 +5,6 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -35,8 +33,6 @@
 			{
 				"name": "Set variable1",
 				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Lookup1",
@@ -61,8 +57,6 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Set variable1",
@@ -82,7 +76,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "WITH Cte AS (\r\n  SELECT DISTINCT\r\n    sp.id,\r\n    COALESCE(MAX(CASE WHEN spt.locale = 'en' THEN spt.name END), '') AS name_en,\r\n    MAX(CASE WHEN spt.locale = 'en' THEN spt.description END) AS description_en,\r\n    COALESCE(MAX(CASE WHEN spt.locale = 'ar' THEN spt.name END), '') AS name_ar,\r\n    MAX(CASE WHEN spt.locale = 'ar' THEN spt.description END) AS description_ar,\r\n    UPPER(REGEXP_REPLACE(TRANSLATE(MAX(CASE WHEN spt.locale = 'en' THEN spt.name END), ' ', '_'), '[^a-zA-Z0-9_]', '', 'g')) AS code,\r\n    sp.expires_at,\r\n    sp.starts_at,\r\n    COALESCE(sp.usage_limit, 0) AS usage_limit,\r\n    sp.match_policy,\r\n    sp.created_at,\r\n    sp.updated_at,\r\n    sp.per_code_usage_limit,\r\n    sp.apply_automatically,\r\n    sp.deleted_at,\r\n    TRUE AS is_visible\r\n  FROM spree_promotions AS sp\r\n  LEFT JOIN spree_promotion_translations AS spt ON spt.spree_promotion_id = sp.id\r\n  WHERE spt.name IS NOT NULL\r\n  GROUP BY sp.id\r\n  ORDER BY sp.id ASC\r\n)\r\nSELECT\r\n  id,\r\n  name_en,\r\n  description_en,\r\n  name_ar,\r\n  description_ar,\r\n  code,\r\n  expires_at,\r\n  starts_at,\r\n  usage_limit,\r\n  match_policy,\r\n  created_at,\r\n  updated_at,\r\n  per_code_usage_limit,\r\n  apply_automatically,\r\n  deleted_at,\r\n  is_visible\r\nFROM (\r\n  SELECT\r\n    id,\r\n    name_en,\r\n    description_en,\r\n    name_ar,\r\n    description_ar,\r\n    code,\r\n    expires_at,\r\n    starts_at,\r\n    usage_limit,\r\n    match_policy,\r\n    created_at,\r\n    updated_at,\r\n    per_code_usage_limit,\r\n    apply_automatically,\r\n    deleted_at,\r\n    is_visible,\r\n    ROW_NUMBER() OVER (PARTITION BY name_en ORDER BY id) AS rn\r\n  FROM Cte\r\n) AS temp\r\nWHERE rn = 1 and \r\nupdated_at > '@{variables('max_updated_date')}'\r\nORDER BY name_en;"
+						"query": {
+							"value": "WITH Cte AS (\n  SELECT DISTINCT\n    sp.id,\n    COALESCE(MAX(CASE WHEN spt.locale = 'en' THEN spt.name END), '') AS name_en,\n    MAX(CASE WHEN spt.locale = 'en' THEN spt.description END) AS description_en,\n    COALESCE(MAX(CASE WHEN spt.locale = 'ar' THEN spt.name END), '') AS name_ar,\n    MAX(CASE WHEN spt.locale = 'ar' THEN spt.description END) AS description_ar,\n    UPPER(REGEXP_REPLACE(TRANSLATE(MAX(CASE WHEN spt.locale = 'en' THEN spt.name END), ' ', '_'), '[^a-zA-Z0-9_]', '', 'g')) AS code,\n    sp.expires_at,\n    sp.starts_at,\n    COALESCE(sp.usage_limit, 0) AS usage_limit,\n    sp.match_policy,\n    sp.created_at,\n    sp.updated_at,\n    sp.per_code_usage_limit,\n    sp.apply_automatically,\n    sp.deleted_at,\n    TRUE AS is_visible\n  FROM spree_promotions AS sp\n  LEFT JOIN spree_promotion_translations AS spt ON spt.spree_promotion_id = sp.id\n  WHERE spt.name IS NOT NULL\n  GROUP BY sp.id\n  ORDER BY sp.id ASC\n)\nSELECT\n  id,\n  name_en,\n  description_en,\n  name_ar,\n  description_ar,\n  code,\n  expires_at,\n  starts_at,\n  usage_limit,\n  match_policy,\n  created_at,\n  updated_at,\n  per_code_usage_limit,\n  apply_automatically,\n  deleted_at,\n  is_visible\nFROM (\n  SELECT\n    id,\n    name_en,\n    description_en,\n    name_ar,\n    description_ar,\n    code,\n    expires_at,\n    starts_at,\n    usage_limit,\n    match_policy,\n    created_at,\n    updated_at,\n    per_code_usage_limit,\n    apply_automatically,\n    deleted_at,\n    is_visible,\n    ROW_NUMBER() OVER (PARTITION BY name_en ORDER BY id) AS rn\n  FROM Cte\n) AS temp\nWHERE rn = 1 and \nupdated_at > '@{variables('max_updated_date')}'\nORDER BY name_en;",
+							"type": "Expression"
+						}
 					},
 					"sink": {
 						"type": "ParquetSink",
