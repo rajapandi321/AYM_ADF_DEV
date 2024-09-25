@@ -1,0 +1,123 @@
+{
+	"name": "taxon_cdc",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzurePostgreSqlSource",
+						"query": "select max(updated_at) as max_updated_date from taxon;",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_V2_PRODUCT_DB_DEV",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "taxon"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "max_updated_date",
+					"value": {
+						"value": "@activity('Lookup1').output.firstRow.max_updated_date",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlV2Source",
+						"query": "SELECT\n    st.id,\n    st.parent_id AS parent_id,\n    st.position,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.name END) as name,\n    COALESCE(MAX(CASE WHEN stt.locale = 'en' THEN stt.permalink END), '') as permalink,\n    st.taxonomy_id,\n    st.created_at,\n    st.updated_at,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_title END) as meta_title,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_description END) as meta_description,\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.meta_keywords END) as meta_keywords,\n    st.visible,\n    Date(st.start_time) AS start_date,\n    Cast( Substring(To_char(st.start_time, 'HH24:MI:SS'), 1, 8)  AS text) AS start_time,\n    Date(st.end_time) AS end_date,\n    Cast(Substring(To_char(st.end_time, 'HH24:MI:SS'), 1, 8) AS text) AS end_time,\n    st.product_text_tag_en,\n    st.product_text_tag_ar,\n    COALESCE(st.tag_to_show, '') AS tag_to_show,\n    st.visible_only_for_subscriber,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.name END) as name_ar,\n    COALESCE(MAX(CASE WHEN stt.locale = 'ar' THEN stt.permalink END), '') as permalink_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_title END) as meta_title_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_description END) as meta_description_ar,\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.meta_keywords END) as meta_keywords_ar,\n    '' as pretty_name,\n    '' as pretty_name_ar,\n    'false' as featured\nFROM\n    spree_taxons st\nLEFT JOIN spree_taxon_translations stt on stt.spree_taxon_id = st.id\nwhere st.updated_at > '@{variables('max_updated_date')}'\nGROUP BY\n    st.id;"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_V1_DEV",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"variables": {
+			"max_updated_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Product DB CDC"
+		},
+		"annotations": []
+	}
+}
