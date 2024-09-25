@@ -21,7 +21,7 @@
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "DS_V2_USER_DB_DEV",
+						"referenceName": "DS_V2_PRODUCT_DB_DEV",
 						"type": "DatasetReference",
 						"parameters": {
 							"table_name": "option_value"
