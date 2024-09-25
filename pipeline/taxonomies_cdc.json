@@ -140,7 +140,12 @@
 				"typeProperties": {
 					"dataflow": {
 						"referenceName": "df_taxonomies_cdc",
-						"type": "DataFlowReference"
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"sink1": {
+								"table_name": "taxonomies"
+							}
+						}
 					},
 					"compute": {
 						"coreCount": 8,
