@@ -10,6 +10,20 @@
 						"type": "DatasetReference"
 					},
 					"name": "source1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "brand"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "supplier"
 				}
 			],
 			"sinks": [
@@ -24,6 +38,18 @@
 			"transformations": [
 				{
 					"name": "alterRow1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "joiningsuppliercode"
+				},
+				{
+					"name": "joiningbrandid"
 				}
 			],
 			"scriptLines": [
@@ -82,7 +108,61 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> source1",
-				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"source(output(",
+				"          id as integer,",
+				"          name_en as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          name_ar as string,",
+				"          temp_taxon_id as integer,",
+				"          code as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'brand',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> brand",
+				"source(output(",
+				"          id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          code as string,",
+				"          name as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'supplier',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> supplier",
+				"joiningbrandid alterRow(upsertIf(true())) ~> alterRow1",
+				"brand select(mapColumn(",
+				"          brand_id = id,",
+				"          temp_taxon_id",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"supplier select(mapColumn(",
+				"          supplier_id = id,",
+				"          supplier_code = name",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"source1, select2 join(temp_supplier_code == supplier_code,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joiningsuppliercode",
+				"joiningsuppliercode join(ERROR_FUNCTION('') == ERROR_FUNCTION(''),",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joiningbrandid",
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
