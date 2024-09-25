@@ -12,13 +12,72 @@
 					"name": "source1"
 				}
 			],
-			"sinks": [],
-			"transformations": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Product_DB_Stage",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
 			"scriptLines": [
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          id as integer,",
+				"          name_en as string,",
+				"          description_en as string,",
+				"          name_ar as string,",
+				"          description_ar as string,",
+				"          code as string,",
+				"          expires_at as timestamp,",
+				"          starts_at as timestamp,",
+				"          usage_limit as integer,",
+				"          match_policy as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          per_code_usage_limit as integer,",
+				"          apply_automatically as boolean,",
+				"          deleted_at as timestamp,",
+				"          is_visible as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet') ~> source1"
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['id'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          name_en,",
+				"          description_en,",
+				"          name_ar,",
+				"          description_ar,",
+				"          code,",
+				"          expires_at,",
+				"          starts_at,",
+				"          usage_limit,",
+				"          match_policy,",
+				"          created_at,",
+				"          updated_at,",
+				"          per_code_usage_limit,",
+				"          apply_automatically,",
+				"          deleted_at,",
+				"          is_visible",
+				"     )) ~> sink1"
 			]
 		}
 	}
