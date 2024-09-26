@@ -16,11 +16,11 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "PostgreSqlV2Source",
-						"query": "select max(update_at) as max_updated_date from store_credit_category;"
+						"type": "AzurePostgreSqlSource",
+						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "DS_V1_DEV",
+						"referenceName": "DS_Order_DB_Stage",
 						"type": "DatasetReference"
 					}
 				}
