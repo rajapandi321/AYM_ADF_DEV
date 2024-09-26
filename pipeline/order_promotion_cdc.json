@@ -76,7 +76,7 @@
 					"source": {
 						"type": "PostgreSqlV2Source",
 						"query": {
-							"value": "select * from spree_orders_promotions\nupdated_at > '@{variables('max_updated_date')}';",
+							"value": "select * from spree_orders_promotions\nwhere updated_at > '@{variables('max_updated_date')}';",
 							"type": "Expression"
 						}
 					},
