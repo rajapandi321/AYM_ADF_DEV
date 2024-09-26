@@ -1,0 +1,110 @@
+{
+	"name": "df_order_address_cdc",
+	"properties": {
+		"folder": {
+			"name": "Order CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_ORDER_DB_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          order_id as integer,",
+				"          address_id as integer,",
+				"          is_bill_address as string,",
+				"          city as string,",
+				"          country as string,",
+				"          district as string,",
+				"          type as string,",
+				"          formatted_address as string,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          postal_code as integer,",
+				"          delivery_instruction as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          order_id as integer,",
+				"          address_id as integer,",
+				"          is_bill_address as boolean,",
+				"          city as string,",
+				"          country as string,",
+				"          district as string,",
+				"          type as string,",
+				"          formatted_address as string,",
+				"          latitude as double,",
+				"          longitude as double,",
+				"          is_default as boolean,",
+				"          street_no as string,",
+				"          area as string,",
+				"          postal_code as integer,",
+				"          delivery_instruction as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          is_verified as boolean,",
+				"          image as string,",
+				"          comments as string",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'order_address',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['order_id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          order_id,",
+				"          address_id,",
+				"          is_bill_address,",
+				"          city,",
+				"          country,",
+				"          district,",
+				"          type,",
+				"          formatted_address,",
+				"          latitude,",
+				"          longitude,",
+				"          postal_code,",
+				"          delivery_instruction,",
+				"          created_at,",
+				"          updated_at",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
