@@ -37,13 +37,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "DS_V1_PRODUCTION",
+						"referenceName": "DS_V1_DEV",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "DS_V2_ORDER_DB_PRODUCTION",
+						"referenceName": "DS_Order_DB_Stage",
 						"type": "DatasetReference",
 						"parameters": {
 							"table_name": "order_invoice_logs"
