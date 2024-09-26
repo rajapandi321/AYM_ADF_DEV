@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"order_payment\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE order_payment_id_seq RESTART WITH ' || (max_id + 1);\r\nEND $$;\r\nSelect 'Altering the Sequence ID' as Update;\r\nselect max(created_at) as max_updated_date from order_payment;",
+						"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"order_payment\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE order_payment_id_seq RESTART WITH ' || (max_id + 1);\r\nEND $$;\r\nselect max(created_at) as max_updated_date from order_payment;",
 						"partitionOption": "None"
 					},
 					"dataset": {
