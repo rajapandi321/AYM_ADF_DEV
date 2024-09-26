@@ -121,7 +121,7 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
 				"timeslot select(mapColumn(",
-				"          id,",
+				"          time_slot_id = id,",
 				"          start_time,",
 				"          end_time,",
 				"          delivery_option_id,",
@@ -152,7 +152,23 @@
 				"     keys:['id'],",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink1"
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          order_id,",
+				"          status = order_status,",
+				"          created_at,",
+				"          updated_at,",
+				"          tax_total,",
+				"          total,",
+				"          supermarket_id,",
+				"          delivery_date,",
+				"          delivery_charges,",
+				"          is_delivery_on_hold,",
+				"          processing_start_at,",
+				"          delivery_type_id,",
+				"          time_slot_id",
+				"     )) ~> sink1"
 			]
 		}
 	}
