@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzurePostgreSqlSource",
-						"query": "select max(updated_at) as max_updated_date\r\nfrom order_product",
+						"query": "select max(updated_at) as max_updated_date\nfrom order_product;",
 						"partitionOption": "None"
 					},
 					"dataset": {
