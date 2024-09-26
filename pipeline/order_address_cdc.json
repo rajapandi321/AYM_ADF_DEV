@@ -77,11 +77,34 @@
 						"type": "PostgreSqlV2Source",
 						"query": "select \r\n\tso.id as order_id,\r\n\tso.bill_address_id as address_id,\r\n\t'true' as is_bill_address,\r\n \tCOALESCE(sa.city,'') as city,\r\n \tCOALESCE(con.name,'') as country,\r\n    sdtrans.name as district, \r\n\t'other' as type,\r\n\tCONCAT(sa.address1, ' ', sa.address2) AS formatted_address,\r\n \tCOALESCE(sa.latitude,'0.0') as latitude,\r\n \tCOALESCE(sa.longitude,'0.0') as longitude,\r\n\tCASE \r\n        WHEN sa.zipcode ~ '^[0-9]+$' THEN CAST(sa.zipcode AS INT)\r\n        ELSE NULL\r\n    END as postal_code,\r\n\tso.special_instructions as delivery_instruction,\r\n\tso.created_at,\r\n\tso.updated_at\r\nfrom spree_orders so\r\nleft join spree_addresses sa on sa.id = so.bill_address_id\r\nleft join spree_countries con on con.id=sa.country_id\r\nleft join spree_districts dist on dist.id=sa.district_id \r\nleft join spree_district_translations sdtrans on sdtrans.spree_district_id = dist.id and sdtrans.locale='en'\r\nwhere so.state != 'cart'\r\nand so.updated_at > '@{variables('max_updated_date')}'\r\n\r\nUNION ALL\r\n\r\nselect \r\n\tROW_NUMBER() over () as id,\r\n\tso.id as order_id,\r\n\tso.ship_address_id as address_id,\r\n\t'false' as is_bill_address,\r\n \tCOALESCE(sa.city,'') as city,\r\n \tCOALESCE(con.name,'') as country,\r\n    sdtrans.name as district, \r\n\t'other' as type,\r\n\tCONCAT(sa.address1, ' ', sa.address2) AS formatted_address,\r\n \tCOALESCE(sa.latitude,'0.0') as latitude,\r\n \tCOALESCE(sa.longitude,'0.0') as longitude,\r\n\tCASE \r\n        WHEN sa.zipcode ~ '^[0-9]+$' THEN CAST(sa.zipcode AS INT)\r\n        ELSE NULL\r\n    END as postal_code,\r\n\tso.special_instructions as delivery_instruction,\r\n\tso.created_at,\r\n\tso.updated_at\r\nfrom spree_orders so\r\nleft join spree_addresses sa on sa.id = so.ship_address_id\r\nleft join spree_countries con on con.id=sa.country_id\r\nleft join spree_districts dist on dist.id=sa.district_id\r\nleft join spree_district_translations sdtrans on sdtrans.spree_district_id = dist.id and sdtrans.locale='en'\r\nwhere so.state != 'cart'\r\nand so.updated_at > '@{variables('max_updated_date')}'"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
 						"referenceName": "DS_V1_DEV",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
 						"type": "DatasetReference"
 					}
 				]
