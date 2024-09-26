@@ -1,0 +1,106 @@
+{
+	"name": "df_store_credit_cdc",
+	"properties": {
+		"folder": {
+			"name": "Order CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_ORDER_DB_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          user_id as integer,",
+				"          store_credit_category_id as integer,",
+				"          store_credit_type_id as integer,",
+				"          created_by_id as integer,",
+				"          amount as decimal(38,18),",
+				"          amount_used as decimal(38,18),",
+				"          amount_authorized as decimal(38,18),",
+				"          currency as string,",
+				"          memo as string,",
+				"          invalidated_at as timestamp,",
+				"          expires_at as timestamp,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          user_id as integer,",
+				"          category_id as integer,",
+				"          type_id as integer,",
+				"          created_by_id as integer,",
+				"          amount as double,",
+				"          amount_used as double,",
+				"          amount_authorized as double,",
+				"          currency as string,",
+				"          memo as string,",
+				"          invalidated_at as timestamp,",
+				"          expires_at as timestamp,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          meta as string",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'store_credit',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          user_id,",
+				"          category_id = store_credit_category_id,",
+				"          type_id = store_credit_type_id,",
+				"          created_by_id,",
+				"          amount,",
+				"          amount_used,",
+				"          amount_authorized,",
+				"          currency,",
+				"          memo,",
+				"          invalidated_at,",
+				"          expires_at,",
+				"          created_at,",
+				"          updated_at,",
+				"          deleted_at",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
