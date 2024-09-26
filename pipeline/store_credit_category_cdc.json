@@ -21,7 +21,10 @@
 					},
 					"dataset": {
 						"referenceName": "DS_Order_DB_Stage",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "store_credit_category"
+						}
 					}
 				}
 			},
