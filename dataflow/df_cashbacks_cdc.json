@@ -1,0 +1,82 @@
+{
+	"name": "df_cashbacks_cdc",
+	"properties": {
+		"folder": {
+			"name": "Order CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_ORDER_DB_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as long,",
+				"          order_id as integer,",
+				"          promotion_action_id as integer,",
+				"          promotion_code_id as integer,",
+				"          label as string,",
+				"          amount as decimal(38,18),",
+				"          eligible as boolean,",
+				"          expires_at as timestamp,",
+				"          store_credit_id as integer,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          credit_expiry_offset as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'cashback',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          order_id,",
+				"          promotion_action_id,",
+				"          promotion_code_id,",
+				"          label,",
+				"          amount,",
+				"          eligible,",
+				"          expires_at,",
+				"          store_credit_id,",
+				"          created_at,",
+				"          updated_at,",
+				"          credit_expiry_offset",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
