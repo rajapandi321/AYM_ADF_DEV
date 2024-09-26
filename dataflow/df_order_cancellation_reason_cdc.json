@@ -55,7 +55,15 @@
 				"     keys:['id'],",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink1"
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          reason_en,",
+				"          reason_ar,",
+				"          visible,",
+				"          created_at,",
+				"          updated_at",
+				"     )) ~> sink1"
 			]
 		}
 	}
