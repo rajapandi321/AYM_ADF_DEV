@@ -5,8 +5,6 @@
 			{
 				"name": "Lookup1",
 				"type": "Lookup",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -34,8 +32,6 @@
 			{
 				"name": "Set variable1",
 				"type": "SetVariable",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Lookup1",
@@ -60,8 +56,6 @@
 			{
 				"name": "Copy data1",
 				"type": "Copy",
-				"state": "Inactive",
-				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Set variable1",
@@ -81,7 +75,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "SELECT id,\r\n       viewable_id          AS product_id,\r\n       attachment_file_name AS file_name,\r\n       created_at,\r\n       updated_at,\r\n       1 as order\r\nFROM   spree_assets\r\nWHERE  viewable_type = 'Spree::Variant' \r\nand updated_at > '@{variables('max_updated_date')}'\r\nOrder by id ASC;"
+						"query": {
+							"value": "SELECT id,\r\n       viewable_id          AS product_id,\r\n       attachment_file_name AS file_name,\r\n       created_at,\r\n       updated_at,\r\n       1 as order\r\nFROM   spree_assets\r\nWHERE  viewable_type = 'Spree::Variant' \r\nand updated_at > '@{variables('max_updated_date')}'\r\nOrder by id ASC;",
+							"type": "Expression"
+						}
 					},
 					"sink": {
 						"type": "ParquetSink",
