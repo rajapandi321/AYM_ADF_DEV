@@ -77,11 +77,34 @@
 						"type": "PostgreSqlV2Source",
 						"query": "WITH delivery_instructions AS (\r\n    SELECT \r\n        sli.line_item_id,\r\n        CONCAT(\r\n            'Preferred Cut - ', COALESCE(spc.name, ''), '::', \r\n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_en, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', '), \r\n            STRING_AGG(CONCAT(' ', COALESCE(scp.name_ar, ''), ' ', ROUND(sli.quantity / 1000.0, 2), ' ', 'kg'), ', ')\r\n        ) AS delivery_instruction\r\n    FROM spree_line_item_cut_patterns sli\r\n    LEFT JOIN spree_cut_patterns scp ON scp.id = sli.cut_pattern_id \r\n    LEFT JOIN spree_preferred_cuts spc ON spc.id = scp.preferred_cut_id\r\n    WHERE sli.quantity > 0\r\n    GROUP BY sli.line_item_id, spc.name\r\n    ORDER BY sli.line_item_id\r\n)\r\nSELECT \r\n    sli.id,\r\n    sli.variant_id AS product_variant_id,\r\n    coalesce(CASE \r\n        WHEN  sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0 -- weighted product \r\n        then\r\n          case\r\n           when sli.requested_quantity < sv.weight_increment and sli.requested_quantity >0\r\n           \tthen sv.weight_increment  / sli.requested_quantity\r\n            else sli.requested_quantity /sv.weight_increment \r\n            end\r\n        ELSE sli.requested_quantity \r\n    END,0) AS quantity,\r\n    -- Determine picked_weight based on conditions\r\n    CASE \r\n        WHEN  sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0 -- weighted product \r\n        THEN sli.quantity \r\n        ELSE NULL\r\n    END AS picked_weight,\r\n    -- Determine picked_quantity based on conditions\r\n    COALESCE(\r\n        CASE \r\n            WHEN sv.weight_increment > 0 AND sv.default_weight_count > 0 AND sv.max_weight_per_order > 0\r\n                THEN 1\r\n                ELSE sli.quantity\r\n        END, 0\r\n    ) AS picked_quantity,\r\n    sli.price,\r\n    sli.created_at,\r\n    sli.replaced,\r\n    so.state,\r\n    COALESCE(sli.updated_at, CURRENT_TIMESTAMP) AS updated_at,\r\n    CASE \r\n        WHEN sli.on_sale = false THEN sli.price\r\n        ELSE '0.0'\r\n    END AS action_price,\r\n    CASE \r\n        WHEN sli.on_sale = true THEN sli.price\r\n        ELSE '0'\r\n    END AS sale_price,\r\n    0 AS picker_id,\r\n    sv.product_id,\r\n    di.delivery_instruction,\r\n    sli.order_id AS order_shipment_id,\r\n    CASE\r\n        WHEN so.replace_product::varchar = 'true' THEN 'replace-with-similar-product' \r\n        WHEN so.replace_product::varchar = 'false' THEN 'cancel'\r\n        ELSE NULL\r\n    END AS replacement_pref,\r\n    1 AS category_id,\r\n    '' AS status\r\nFROM spree_line_items sli\r\nLEFT JOIN spree_variants sv ON sv.id = sli.variant_id\r\nLEFT JOIN spree_orders so ON so.id = sli.order_id\r\nLEFT JOIN delivery_instructions di ON sli.id = di.line_item_id\r\n-- left join spree_product_translations spt on spt.spree_product_id = sv.product_id and spt.locale = 'en'\r\nWHERE so.state != 'cart'\r\nand sli.updated_at > '@{variables('max_updated_at')}'\r\norder by sli.id desc;"
 					},
-					"enableStaging": false
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
 				},
 				"inputs": [
 					{
 						"referenceName": "DS_V1_DEV",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Intermiadate_Result",
 						"type": "DatasetReference"
 					}
 				]
