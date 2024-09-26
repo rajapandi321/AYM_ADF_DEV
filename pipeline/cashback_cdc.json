@@ -75,7 +75,10 @@
 				"typeProperties": {
 					"source": {
 						"type": "PostgreSqlV2Source",
-						"query": "select * from spree_cashbacks;"
+						"query": {
+							"value": "select * from spree_cashbacks\nwhere updated_at > '@{variables('max_updated_date')}';",
+							"type": "Expression"
+						}
 					},
 					"sink": {
 						"type": "ParquetSink",
