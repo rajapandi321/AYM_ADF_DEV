@@ -113,7 +113,7 @@
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
-				"jointimeslots alterRow() ~> alterRow1",
+				"jointimeslots alterRow(upsertIf(true())) ~> alterRow1",
 				"deliverytype select(mapColumn(",
 				"          delivery_type_id = id,",
 				"          delivery_type_name = name",
