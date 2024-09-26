@@ -1,8 +1,8 @@
 {
-	"name": "df_option_value_cdc",
+	"name": "df_order_cdc",
 	"properties": {
 		"folder": {
-			"name": "Product CDC"
+			"name": "Order CDC"
 		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
@@ -18,7 +18,7 @@
 			"sinks": [
 				{
 					"linkedService": {
-						"referenceName": "LS_V2_STAGE",
+						"referenceName": "LS_V2_ORDER_DB_STAGE",
 						"type": "LinkedServiceReference"
 					},
 					"name": "sink1"
@@ -38,7 +38,7 @@
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
-				"     tableName: 'option_value',",
+				"     tableName: 'order',",
 				"     schemaName: 'public',",
 				"     deletable: false,",
 				"     insertable: false,",

@@ -1,6 +1,9 @@
 {
 	"name": "df_nutritional_facts_cdc",
 	"properties": {
+		"folder": {
+			"name": "Product CDC"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
