@@ -150,6 +150,8 @@
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
+				"     tableName: 'order_shipment',",
+				"     schemaName: 'public',",
 				"     deletable: false,",
 				"     insertable: false,",
 				"     updateable: false,",
