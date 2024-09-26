@@ -13,14 +13,1097 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/delivery_type')]",
+			"name": "[concat(parameters('factoryName'), '/df_order_payment_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as long,",
+						"          order_id as integer,",
+						"          transaction_id as string,",
+						"          amount as decimal(38,18),",
+						"          currency as string,",
+						"          status as string,",
+						"          payment_option_id as integer,",
+						"          source_id as integer,",
+						"          shipment_id as integer,",
+						"          source_type as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'order_payment',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['order_id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_order_shipment_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "deliverytype"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "timeslot"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_PRODUCTION_SERVER",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "selectdeliverytype"
+						},
+						{
+							"name": "selecttimeslot"
+						},
+						{
+							"name": "joindeliverytype"
+						},
+						{
+							"name": "jointimeslots"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          order_status as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          tax_total as double,",
+						"          total as decimal(38,18),",
+						"          start_time as string,",
+						"          end_time as string,",
+						"          day_of_week as string,",
+						"          delivery_option_id as integer,",
+						"          order_type as string,",
+						"          supermarket_id as integer,",
+						"          delivery_date as timestamp,",
+						"          delivery_charges as decimal(38,18),",
+						"          is_delivery_on_hold as boolean,",
+						"          processing_start_at as timestamp,",
+						"          row_num as long",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'delivery_type',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
+						"source(output(",
+						"          id as integer,",
+						"          start_time as string,",
+						"          end_time as string,",
+						"          country_id as integer,",
+						"          delivery_option_id as integer,",
+						"          day_of_week as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          is_enabled as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'time_slot',",
+						"     schemaName: 'public',",
+						"     store: 'postgres',",
+						"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
+						"derivedColumn1 alterRow(upsertIf(true())) ~> alterRow1",
+						"deliverytype select(mapColumn(",
+						"          delivery_type_id = id,",
+						"          delivery_type_name = name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
+						"timeslot select(mapColumn(",
+						"          time_slot_id = id,",
+						"          start_time,",
+						"          end_time,",
+						"          delivery_option_id,",
+						"          day_of_week",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selecttimeslot",
+						"source1, selectdeliverytype join(order_type == delivery_type_name,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joindeliverytype",
+						"joindeliverytype, selecttimeslot join(source1@start_time == selecttimeslot@start_time",
+						"     && source1@end_time == selecttimeslot@end_time",
+						"     && source1@delivery_option_id == selecttimeslot@delivery_option_id",
+						"     && source1@day_of_week == selecttimeslot@day_of_week,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> jointimeslots",
+						"jointimeslots derive(formatted_time_slot = concat(source1@start_time,'-',source1@end_time),",
+						"          delivery_type_id = coalesce(delivery_type_id,1)) ~> derivedColumn1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'order_shipment',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          status = order_status,",
+						"          created_at,",
+						"          updated_at,",
+						"          tax_total,",
+						"          total,",
+						"          supermarket_id,",
+						"          delivery_date,",
+						"          delivery_charges,",
+						"          is_delivery_on_hold,",
+						"          processing_start_at,",
+						"          delivery_type_id,",
+						"          time_slot_id,",
+						"          formatted_time_slot",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_order_payment_refund_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          transaction_id as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          amount as decimal(38,18),",
+						"          status as string,",
+						"          currency as string,",
+						"          type as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          transaction_id as string,",
+						"          currency as string,",
+						"          amount as double,",
+						"          status as string,",
+						"          refunded_at as timestamp,",
+						"          approved_by as integer,",
+						"          approved_at as timestamp,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          type as string,",
+						"          error_msg as string,",
+						"          refund_action_id as string,",
+						"          order_payment_id as integer",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'order_payment_refund',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          transaction_id,",
+						"          currency,",
+						"          amount,",
+						"          status,",
+						"          created_at,",
+						"          updated_at,",
+						"          type",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_order_address_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          order_id as integer,",
+						"          address_id as integer,",
+						"          is_bill_address as string,",
+						"          city as string,",
+						"          country as string,",
+						"          district as string,",
+						"          type as string,",
+						"          formatted_address as string,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          postal_code as integer,",
+						"          delivery_instruction as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          address_id as integer,",
+						"          is_bill_address as boolean,",
+						"          city as string,",
+						"          country as string,",
+						"          district as string,",
+						"          type as string,",
+						"          formatted_address as string,",
+						"          latitude as double,",
+						"          longitude as double,",
+						"          is_default as boolean,",
+						"          street_no as string,",
+						"          area as string,",
+						"          postal_code as integer,",
+						"          delivery_instruction as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          is_verified as boolean,",
+						"          image as string,",
+						"          comments as string",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'order_address',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['order_id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          order_id,",
+						"          address_id,",
+						"          is_bill_address,",
+						"          city,",
+						"          country,",
+						"          district,",
+						"          type,",
+						"          formatted_address,",
+						"          latitude,",
+						"          longitude,",
+						"          postal_code,",
+						"          delivery_instruction,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_order_adjustment_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          source_id as integer,",
+						"          adjustable_id as integer,",
+						"          adjustable_reason_id as integer,",
+						"          amount as decimal(38,18),",
+						"          promotion_code_id as integer,",
+						"          eligible as boolean,",
+						"          included as boolean,",
+						"          finalized as boolean,",
+						"          free_sample as boolean,",
+						"          source_type as string,",
+						"          label as string,",
+						"          adjustable_type as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          order_id as integer,",
+						"          source_type as string,",
+						"          source_id as integer,",
+						"          adjustable_type as string,",
+						"          adjustable_id as integer,",
+						"          adjustable_reason_id as integer,",
+						"          amount as double,",
+						"          label as string,",
+						"          promotion_code_id as integer,",
+						"          eligible as boolean,",
+						"          included as boolean,",
+						"          finalized as boolean,",
+						"          free_sample as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'order_adjustment',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          source_type,",
+						"          source_id,",
+						"          adjustable_type,",
+						"          adjustable_id,",
+						"          adjustable_reason_id,",
+						"          amount,",
+						"          label,",
+						"          promotion_code_id,",
+						"          eligible,",
+						"          included,",
+						"          finalized,",
+						"          free_sample,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_store_credit_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          user_id as integer,",
+						"          store_credit_category_id as integer,",
+						"          store_credit_type_id as integer,",
+						"          created_by_id as integer,",
+						"          amount as decimal(38,18),",
+						"          amount_used as decimal(38,18),",
+						"          amount_authorized as decimal(38,18),",
+						"          currency as string,",
+						"          memo as string,",
+						"          invalidated_at as timestamp,",
+						"          expires_at as timestamp,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          user_id as integer,",
+						"          category_id as integer,",
+						"          type_id as integer,",
+						"          created_by_id as integer,",
+						"          amount as double,",
+						"          amount_used as double,",
+						"          amount_authorized as double,",
+						"          currency as string,",
+						"          memo as string,",
+						"          invalidated_at as timestamp,",
+						"          expires_at as timestamp,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          deleted_at as timestamp,",
+						"          meta as string",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'store_credit',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          user_id,",
+						"          category_id = store_credit_category_id,",
+						"          type_id = store_credit_type_id,",
+						"          created_by_id,",
+						"          amount,",
+						"          amount_used,",
+						"          amount_authorized,",
+						"          currency,",
+						"          memo,",
+						"          invalidated_at,",
+						"          expires_at,",
+						"          created_at,",
+						"          updated_at,",
+						"          deleted_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_store_credit_category_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          available_to_admin as boolean,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'store_credit_category',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          name,",
+						"          available_to_admin,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_store_credit_transaction_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          store_credit_id as integer,",
+						"          action as string,",
+						"          amount as decimal(38,18),",
+						"          user_total_amount as decimal(38,18),",
+						"          authorization_code as string,",
+						"          update_reason_id as integer,",
+						"          originator_type as string,",
+						"          originator_id as integer,",
+						"          currency as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          id as integer,",
+						"          store_credit_id as integer,",
+						"          action as string,",
+						"          amount as decimal(10,2),",
+						"          user_total_amount as decimal(10,2),",
+						"          authorization_code as string,",
+						"          update_reason_id as integer,",
+						"          originator_type as string,",
+						"          originator_id as integer,",
+						"          currency as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     format: 'table',",
+						"     tableName: 'store_credit_transaction',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          store_credit_id,",
+						"          action,",
+						"          amount,",
+						"          user_total_amount,",
+						"          authorization_code,",
+						"          update_reason_id,",
+						"          originator_type,",
+						"          originator_id,",
+						"          currency,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_store_credit_update_reason_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as integer,",
+						"          name as string,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'store_credit_update_reason',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          name,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_cashbacks_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as long,",
+						"          order_id as integer,",
+						"          promotion_action_id as integer,",
+						"          promotion_code_id as integer,",
+						"          label as string,",
+						"          amount as decimal(38,18),",
+						"          eligible as boolean,",
+						"          expires_at as timestamp,",
+						"          store_credit_id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp,",
+						"          credit_expiry_offset as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'cashback',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          id,",
+						"          order_id,",
+						"          promotion_action_id,",
+						"          promotion_code_id,",
+						"          label,",
+						"          amount,",
+						"          eligible,",
+						"          expires_at,",
+						"          store_credit_id,",
+						"          created_at,",
+						"          updated_at,",
+						"          credit_expiry_offset",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_order_promotion_cdc')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Order CDC"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_V2_ORDER_DB_STAGE",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          order_id as integer,",
+						"          promotion_id as integer,",
+						"          promotion_code_id as integer,",
+						"          id as integer,",
+						"          created_at as timestamp,",
+						"          updated_at as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'parquet') ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'table',",
+						"     tableName: 'order_promotions',",
+						"     schemaName: 'public',",
+						"     deletable: false,",
+						"     insertable: false,",
+						"     updateable: false,",
+						"     upsertable: true,",
+						"     keys:['id'],",
+						"     store: 'postgres',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          order_id,",
+						"          promotion_id,",
+						"          promotion_code_id,",
+						"          id,",
+						"          created_at,",
+						"          updated_at",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/address')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "delivery_type",
-						"type": "Lookup",
+						"name": "address",
+						"type": "Copy",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -32,15 +1115,268 @@
 						"userProperties": [],
 						"typeProperties": {
 							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT DISTINCT\n    sua.id,\n    CASE\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\n        WHEN sa.address1 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ')\n        WHEN sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address2, ', ')\n        ELSE ''\n    END AS formatted_address,\n    COALESCE(COALESCE(sst_en.name, sst_ar.name),'') AS city,\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::BIGINT, NULL) AS postal_code,\n    sua.created_at,\n    sua.updated_at,\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\n    COALESCE(sa.latitude, 0) AS latitude,\n    COALESCE(sa.longitude, 0) AS longitude,\n    COALESCE(sua.default, 'false') AS is_default,\n    sua.user_id AS user_id,\n    'other' AS type,\n    COALESCE(\n        CASE \n            WHEN sa.driver_meta_data IS NOT NULL THEN sa.driver_meta_data->>'verified'\n            ELSE 'false'\n        END, 'false') AS is_verified,  -- Ensure non-null value here\n    '' AS title,\n    sa.driver_meta_data->>'notes' AS comments\nFROM\n    spree_user_addresses sua\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\nLEFT JOIN spree_state_translations sst_en ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\nLEFT JOIN spree_state_translations sst_ar ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\nWHERE (sa.id IS NOT NULL AND city IS NOT NULL)\nORDER BY sua.id DESC;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "city",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "is_default",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_default",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "longitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										},
+										"sink": {
+											"name": "latitude",
+											"type": "Double",
+											"physicalType": "double precision"
+										}
+									},
+									{
+										"source": {
+											"name": "user_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "user_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "type",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "type",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "formatted_address",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "formatted_address",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "postal_code",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "postal_code",
+											"type": "Int64",
+											"physicalType": "bigint"
+										}
+									},
+									{
+										"source": {
+											"name": "district",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "district",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "is_verified",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "is_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "comments",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "comments",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "title",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "title",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "address"
+								}
+							}
+						]
+					},
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "address",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
 								"type": "AzurePostgreSqlSource",
-								"query": "INSERT INTO PUBLIC.delivery_type\r\n            (id,\r\n             NAME,\r\n             created_at)\r\nVALUES      ( 1,\r\n              'Regular',\r\n              '2023-02-24 07:20:04.500904' ),\r\n            ( 2,\r\n              'Express',\r\n              '2023-02-24 07:20:04.500904' ); \r\nSELECT 'AYM' as AYMInsertActivity",
+								"query": "DO $$\nDECLARE\n    max_id INT;\nBEGIN\n    -- Step 1: Get the maximum id from the 'order' table\n    SELECT MAX(id) INTO max_id FROM \"address\";\n    \n    -- Step 2: Alter the sequence to restart with max_id + 1\n    EXECUTE 'ALTER SEQUENCE address_id_seq RESTART WITH ' || (max_id + 1000);\nEND $$;\nSelect 'Altering the Sequence ID' as Update;",
 								"partitionOption": "None"
 							},
 							"dataset": {
 								"referenceName": "DS_V2_USER_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": "delivery_type"
+									"table_name": "address"
 								}
 							}
 						}
@@ -57,7 +1393,621 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/device_token')]",
+			"name": "[concat(parameters('factoryName'), '/address_cdc')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "select max(updated_at) as max_updated_date from address",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_USER_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "address"
+								}
+							}
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "max_updated_date",
+							"value": {
+								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": {
+									"value": "SELECT DISTINCT\n    sua.id,\n    CASE\n        WHEN sa.address1 IS NOT NULL AND sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ', sa.address2, ', ')\n        WHEN sa.address1 IS NOT NULL THEN\n            CONCAT(sa.address1, ' ')\n        WHEN sa.address2 IS NOT NULL THEN\n            CONCAT(sa.address2, ', ')\n        ELSE ''\n    END AS formatted_address,\n    COALESCE(COALESCE(sst_en.name, sst_ar.name),'') AS city,\n    COALESCE(scon.name, 'Saudi Arabia') AS country,\n    COALESCE(NULLIF(regexp_replace(sa.zipcode, '[^0-9]', '', 'g'), '')::BIGINT, NULL) AS postal_code,\n    sua.created_at,\n    sua.updated_at,\n    COALESCE(sdt_en.name, sdt_ar.name) AS district,\n    COALESCE(sa.latitude, 0) AS latitude,\n    COALESCE(sa.longitude, 0) AS longitude,\n    COALESCE(sua.default, 'false') AS is_default,\n    sua.user_id AS user_id,\n    'other' AS type,\n    COALESCE(\n        CASE \n            WHEN sa.driver_meta_data IS NOT NULL THEN sa.driver_meta_data->>'verified'\n            ELSE 'false'\n        END, 'false') AS is_verified,  -- Ensure non-null value here\n    '' AS title,\n    sa.driver_meta_data->>'notes' AS comments\nFROM\n    spree_user_addresses sua\nLEFT JOIN spree_addresses sa ON sua.address_id = sa.id\nLEFT JOIN spree_countries scon ON sa.country_id = scon.id\nLEFT JOIN spree_districts sdist ON sdist.id = sa.district_id\nLEFT JOIN spree_district_translations sdt_en ON sdt_en.spree_district_id = sdist.id AND sdt_en.locale = 'en'\nLEFT JOIN spree_district_translations sdt_ar ON sdt_ar.spree_district_id = sdist.id AND sdt_ar.locale = 'ar'\nLEFT JOIN spree_state_translations sst_en ON sst_en.id = sa.state_id AND sst_en.locale = 'en'\nLEFT JOIN spree_state_translations sst_ar ON sst_ar.id = sa.state_id AND sst_ar.locale = 'ar'\nWHERE (sa.id IS NOT NULL AND city IS NOT NULL)\nand sua.updated_at > '@{variables('max_updated_date')}'\nORDER BY sua.id DESC;",
+									"type": "Expression"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_address_cdc",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"max_updated_date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "User DB CDC"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/auth_ employee_cdc')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "fetchmaxupdateddate",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "select max(updated_at) as max_updated_date from public.employee;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "user"
+								}
+							}
+						}
+					},
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": {
+									"value": "SELECT distinct\n\tu.id as id,\n    u.id AS user,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at\n\t\nFROM spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.id <> 2 and sr.name <> 'user'\nwhere u.updated_at >= '@{variables('max_updated_date')}';",
+									"type": "Expression"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "fetchmaxupdateddate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "max_updated_date",
+							"value": {
+								"value": "@activity('fetchmaxupdateddate').output.firstRow.max_updated_date",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_auth_employee_cdc",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"max_updated_date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Auth DB CDC"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/auth_device_token_cdc')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "fetchmaxupdateddate",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "select max(updated_at) as max_updated_date from public.device_token;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "user"
+								}
+							}
+						}
+					},
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Set variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": {
+									"value": "with cte as(\nselect \n  distinct user_id,\n  uuid as device_id,\n  platform as device_type,\n  created_at,\n  updated_at,\n  push_notification_token as token,\n  'customer' as user_type,\n  row_number() over (partition by user_id order by user_id) as rn\nfrom spree_user_clients\norder by user_id, uuid)\n\nselect user_id, device_id, device_type, created_at, updated_at, token, user_type\nfrom cte \nwhere updated_at >= '@{variables('max_updated_date')}'\nand rn = 1;",
+									"type": "Expression"
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "fetchmaxupdateddate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "max_updated_date",
+							"value": {
+								"value": "@activity('fetchmaxupdateddate').output.firstRow.max_updated_date",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_auth_device_token_cdc",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Delete1",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_Intermiadate_Result",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"max_updated_date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Auth DB CDC"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/auth_employee')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -77,7 +2027,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": "with cte as(\nselect \n  distinct user_id,\n  uuid as device_id,\n  platform as device_type,\n  created_at,\n  updated_at,\n  push_notification_token as token,\n  'customer' as user_type,\n  row_number() over (partition by user_id order by user_id) as rn\nfrom spree_user_clients\norder by user_id, uuid)\n\nselect user_id, device_id, device_type, created_at, updated_at, token, user_type\nfrom cte \nwhere rn = 1;"
+								"query": "SELECT distinct\n\tu.id as id,\n    u.id AS user,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at\n\t\nFROM spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.id <> 2 and sr.name <> 'user'"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -88,6 +2038,116 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "is_deleted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_deleted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "user",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "user",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "password_updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp with time zone"
+										},
+										"sink": {
+											"name": "password_updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "password_salt",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "password_salt",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "password",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "password",
+											"type": "String",
+											"physicalType": "text"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -107,7 +2167,7 @@
 								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": "device_token"
+									"table_name": "employee"
 								}
 							}
 						]
@@ -124,7 +2184,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/employee')]",
+			"name": "[concat(parameters('factoryName'), '/auth_user')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -132,209 +2192,6 @@
 					{
 						"name": "Copy data1",
 						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT u.id,\nsru.role_id,\nu.email,\nu.created_at,\nu.updated_at,\nCASE\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\n    ELSE FALSE\n  END AS is_deleted,\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\n  LEFT(COALESCE(CASE\n    WHEN u.mobile_phone_number LIKE CONCAT(\n      '+', u.mobile_number_country_code,\n      '%'\n      ) THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\n      )\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\n      u.mobile_phone_number,\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\n      )\n    ELSE COALESCE(u.mobile_phone_number, '')\n  END, ''), 16) AS mobile_number,\n  u.dob,\n  COALESCE(\n  CONCAT('+', u.mobile_number_country_code),\n  ''\n  ) AS country_code,\n  CASE WHEN sa.country_id='0' THEN '1'\n    ELSE sa.country_id\n  END AS country_id,\n\t'others' as gender,\n\t'admin' as user_type,\n\t'available' as availability,\n  sr.name as role_name,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS active,\n\tCASE\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\n    ELSE TRUE\n  END AS status,\n  sa.city\nfrom spree_users u\ninner join spree_roles_users sru on sru.user_id = u.id\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\nleft join spree_addresses sa on sua.address_id = sa.id\norder by u.id asc;"
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings",
-									"copyBehavior": "FlattenHierarchy"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "employee",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"employee": {},
-									"city": {},
-									"StoreInDB": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": false,
-								"enablePartitionDiscovery": false
-							}
-						}
-					},
-					{
-						"name": "Lookup1",
-						"type": "Lookup",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "Delete1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"employee\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE employee_id_seq RESTART WITH ' || (max_id + 1000);\r\nEND $$;\r\nSelect 'Altering Sequence ID' as Update;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "employee"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/employee_cdc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Lookup1",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "select max(updated_at) as max_updated_date from employee;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "employee"
-								}
-							}
-						}
-					},
-					{
-						"name": "Set variable1",
-						"type": "SetVariable",
 						"dependsOn": [
 							{
 								"activity": "Lookup1",
@@ -344,30 +2201,6 @@
 							}
 						],
 						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "max_updated_date",
-							"value": {
-								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set variable1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
 							"retryIntervalInSeconds": 30,
@@ -378,392 +2211,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "PostgreSqlV2Source",
-								"query": {
-									"value": "SELECT u.id,\r\nsru.role_id,\r\nu.email,\r\nu.created_at,\r\nu.updated_at,\r\nCASE\r\n    WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n    ELSE FALSE\r\n  END AS is_deleted,\r\n  LEFT(COALESCE(u.first_name, ''), 40) AS first_name,\r\n  LEFT(COALESCE(u.last_name, ''), 40) AS last_name,\r\n  LEFT(COALESCE(CASE\r\n    WHEN u.mobile_phone_number LIKE CONCAT(\r\n      '+', u.mobile_number_country_code,\r\n      '%'\r\n      ) THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 2\r\n      )\r\n    WHEN u.mobile_phone_number LIKE CONCAT(u.mobile_number_country_code, '%') THEN SUBSTRING(\r\n      u.mobile_phone_number,\r\n      CHAR_LENGTH(u.mobile_number_country_code) + 1\r\n      )\r\n    ELSE COALESCE(u.mobile_phone_number, '')\r\n  END, ''), 16) AS mobile_number,\r\n  u.dob,\r\n  COALESCE(\r\n  CONCAT('+', u.mobile_number_country_code),\r\n  ''\r\n  ) AS country_code,\r\n  CASE WHEN sa.country_id='0' THEN '1'\r\n    ELSE sa.country_id\r\n  END AS country_id,\r\n\t'others' as gender,\r\n\t'admin' as user_type,\r\n\t'available' as availability,\r\n  sr.name as role_name,\r\n\tCASE\r\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\r\n    ELSE TRUE\r\n  END AS active,\r\n\tCASE\r\n    WHEN u.deleted_at IS NOT NULL THEN FALSE\r\n    ELSE TRUE\r\n  END AS status,\r\n  sa.city\r\nfrom spree_users u\r\ninner join spree_roles_users sru on sru.user_id = u.id\r\ninner join spree_roles sr on sr.id = sru.role_id and sr.name <> 'user'\r\nleft join spree_user_addresses sua on sua.user_id = u.id and sua.default=TRUE\r\nleft join spree_addresses sa on sua.address_id = sa.id\r\nwhere u.updated_at > '@{variables('max_updated_date')}'\r\norder by u.id asc",
-									"type": "Expression"
-								}
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_employee_cdc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"source2": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"max_updated_date": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "User DB CDC"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/feedback')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select \nsfdrw.id,\nsur.first_name,\nsur.last_name,\nsur.email,\nsur.mobile_number_country_code as country_code,\nsur.mobile_phone_number as mobile_number,\nsfdrw.comment as message,\nsfdrw.created_at,\nsfdrw.updated_at,\nsfdrw.user_id\nfrom spree_feedback_reviews sfdrw\nLeft join spree_users sur on sur.id = sfdrw.user_id;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "feedback"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/feedback_cdc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Lookup1",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "select max(updated_at) as max_updated_date from feedback;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "feedback"
-								}
-							}
-						}
-					},
-					{
-						"name": "Set variable1",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Lookup1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "max_updated_date",
-							"value": {
-								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set variable1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": {
-									"value": "select \nsfdrw.id,\nsur.first_name,\nsur.last_name,\nsur.email,\nsur.mobile_number_country_code as country_code,\nsur.mobile_phone_number as mobile_number,\nsfdrw.comment as message,\nsfdrw.created_at,\nsfdrw.updated_at,\nsfdrw.user_id\nfrom spree_feedback_reviews sfdrw\nLeft join spree_users sur on sur.id = sfdrw.user_id\nwhere sfdrw.updated_at >= '@{variables('max_updated_date')}';",
-									"type": "Expression"
-								}
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_feedback_cdc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"max_updated_date": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "User DB CDC"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/ingredient')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select \n  id, \n  name_en, \n  name_ar, \n  taxon_id, \n  kitchen_recipe_id as recipe_id, \n  quantity, \n  COALESCE(Cast(measurement AS CHARACTER varying),'') AS measurement,\n  created_at, \n  updated_at \nfrom \n  spree_kitchen_ingredients\norder by id ASC;"
+								"query": "SELECT \n    u.id AS user_id,\n    u.encrypted_password AS password,\n    u.password_salt,\n    u.email,\n    u.created_at,\n    u.updated_at,\n    CAST(CASE \n            WHEN u.deleted_at IS NOT NULL THEN TRUE\n            ELSE FALSE\n        END AS BOOLEAN) AS is_deleted,\n    CURRENT_TIMESTAMP as password_updated_at,\n    false as is_email_verified,\n    u.is_phone_verified as mobile_verified,\n\tcase \n  \twhen sua.provider = 'google_oauth2' then 'google'\n\telse sua.provider end as login_type,\n\tsua.uid as social_id,\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\n\tcase \n\twhen u.blacklisted_at is not null Then True\n\tELSE false\n\tend as blacklisted\n\t\nFROM spree_users u\nleft join spree_user_authentications sua on u.id = sua.user_id"
 							},
 							"sink": {
 								"type": "AzurePostgreSQLSink",
@@ -777,432 +2225,18 @@
 								"mappings": [
 									{
 										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "name_en",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name_en",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "name_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "recipe_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "recipe_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "taxon_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "taxon_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "quantity",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "quantity",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "measurement",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "measurement",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "ingredient"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/ingredient_product')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select \n  -- id,\n  Cast(kitchen_ingredient_id AS integer) AS ingredient_id,\n  Cast(recommended_product_id AS integer) AS product_id\nfrom spree_ingredient_products\n-- order by id asc;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "ingredient_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "ingredient_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "ingredient_product"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/inventory_modifiers')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT id,\n       product_id,\n       Cast(action_price as double precision),\n       action_in_stock AS track_stock,\n       COALESCE(rule_supermarket_id, -1) AS supermarket_id,\n       created_at,\n       updated_at,\n\t   Cast(action_sale_price as double precision) AS sale_price,\n       Date(action_sale_start) AS sale_start_date,\n       Substring(To_char(action_sale_start, 'HH24:MI:SS'), 1, 8) AS sale_start_time,\n       Date(action_sale_end) AS sale_end_date,\n       Substring(To_char(action_sale_end, 'HH24:MI:SS'), 1, 8)   AS sale_end_time,\n       Date(availability_start_time) AS availability_start_date,\n       -- availability_start_time (timestamp without time zone so we need to extract using string manipulation) \n       Date(availability_end_time) AS availability_end_date,\n       stock_quantity,\n       action_sale_price AS cost_price\nFROM   spree_product_inventory_modifiers\norder by id ASC;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "supermarket_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "supermarket_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "action_price",
-											"type": "Double",
-											"physicalType": "double precision"
-										},
-										"sink": {
-											"name": "action_price",
-											"type": "Double",
-											"physicalType": "double precision"
-										}
-									},
-									{
-										"source": {
-											"name": "sale_price",
-											"type": "Double",
-											"physicalType": "double precision"
-										},
-										"sink": {
-											"name": "sale_price",
-											"type": "Double",
-											"physicalType": "double precision"
-										}
-									},
-									{
-										"source": {
-											"name": "sale_start_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										},
-										"sink": {
-											"name": "sale_start_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "sale_end_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										},
-										"sink": {
-											"name": "sale_end_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "sale_start_time",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "sale_start_time",
-											"type": "TimeSpan",
-											"physicalType": "time without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "sale_end_time",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "sale_end_time",
-											"type": "TimeSpan",
-											"physicalType": "time without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "availability_start_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										},
-										"sink": {
-											"name": "availability_start_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "availability_end_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										},
-										"sink": {
-											"name": "availability_end_date",
-											"type": "DateTime",
-											"physicalType": "date"
-										}
-									},
-									{
-										"source": {
-											"name": "track_stock",
+											"name": "is_deleted",
 											"type": "Boolean",
 											"physicalType": "boolean"
 										},
 										"sink": {
-											"name": "track_stock",
+											"name": "is_deleted",
 											"type": "Boolean",
 											"physicalType": "boolean"
 										}
 									},
 									{
 										"source": {
-											"name": "stock_quantity",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "stock_quantity",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
 											"name": "created_at",
 											"type": "DateTime",
 											"physicalType": "timestamp without time zone"
@@ -1223,6 +2257,138 @@
 											"name": "updated_at",
 											"type": "DateTime",
 											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "user_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "user",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "password_updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp with time zone"
+										},
+										"sink": {
+											"name": "password_updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "login_type",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "login_type",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "social_id",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "social_id",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "is_email_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_email_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "mobile_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "mobile_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "password_salt",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "password_salt",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "password",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "password",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "blacklisted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_blacklisted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "spree_api_key",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "spree_api_key",
+											"type": "String",
+											"physicalType": "character varying"
 										}
 									}
 								],
@@ -1242,33 +2408,17 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": "inventory_modifiers"
+									"table_name": "user"
 								}
 							}
 						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/inventory_modifiers_cdc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
+					},
 					{
 						"name": "Lookup1",
+						"description": "Alter sequence user_id_seq restart with 1;\nSelect 'Altering Sequence' As Update;",
 						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
@@ -1282,39 +2432,60 @@
 						"typeProperties": {
 							"source": {
 								"type": "AzurePostgreSqlSource",
-								"query": "select max(updated_at) as max_updated_date from inventory_modifiers",
+								"query": "Alter sequence user_id_seq restart with 1;\nSelect 'Altering Sequence' as update;",
 								"partitionOption": "None"
 							},
 							"dataset": {
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
 								"type": "DatasetReference",
 								"parameters": {
-									"table_name": "inventory_modifiers"
+									"table_name": "user"
 								}
-							}
+							},
+							"firstRowOnly": false
 						}
-					},
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Auth DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/auth_user_cdc')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
 					{
-						"name": "Set variable1",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Lookup1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
+						"name": "fetchmaxupdateddate",
+						"type": "Lookup",
+						"dependsOn": [],
 						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
 							"secureOutput": false,
 							"secureInput": false
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"variableName": "max_updated_date",
-							"value": {
-								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
-								"type": "Expression"
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "select max(updated_at) as max_updated_date from public.user;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_AUTH_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "user"
+								}
 							}
 						}
 					},
@@ -1341,1659 +2512,15 @@
 							"source": {
 								"type": "PostgreSqlV2Source",
 								"query": {
-									"value": "SELECT id,\r\n       product_id,\r\n       Cast(action_price as double precision),\r\n       action_in_stock AS track_stock,\r\n       COALESCE(rule_supermarket_id, -1) AS supermarket_id,\r\n       created_at,\r\n       updated_at,\r\n\t   Cast(action_sale_price as double precision) AS sale_price,\r\n       Date(action_sale_start) AS sale_start_date,\r\n       Substring(To_char(action_sale_start, 'HH24:MI:SS'), 1, 8) AS sale_start_time,\r\n       Date(action_sale_end) AS sale_end_date,\r\n       Substring(To_char(action_sale_end, 'HH24:MI:SS'), 1, 8)   AS sale_end_time,\r\n       Date(availability_start_time) AS availability_start_date,\r\n       -- availability_start_time (timestamp without time zone so we need to extract using string manipulation) \r\n       Date(availability_end_time) AS availability_end_date,\r\n       stock_quantity,\r\n       action_sale_price AS cost_price\r\nFROM   spree_product_inventory_modifiers\r\nwhere updated_at > '@{variables('max_updated_date')}'\r\norder by id ASC;",
+									"value": "SELECT \r\n    u.id AS user_id,\r\n    u.encrypted_password AS password,\r\n    u.password_salt,\r\n    u.email,\r\n    u.created_at,\r\n    u.updated_at,\r\n    CAST(CASE \r\n            WHEN u.deleted_at IS NOT NULL THEN TRUE\r\n            ELSE FALSE\r\n        END AS BOOLEAN) AS is_deleted,\r\n    CURRENT_TIMESTAMP as password_updated_at,\r\n    false as is_email_verified,\r\n    u.is_phone_verified as mobile_verified,\r\n\tcase \r\n  \twhen sua.provider = 'google_oauth2' then 'google'\r\n\telse sua.provider end as login_type,\r\n\tsua.uid as social_id,\r\n\tcoalesce(u.spree_api_key,'') as spree_api_key,\r\n\tcase \r\n\twhen u.blacklisted_at is not null Then True\r\n\tELSE false\r\n\tend as blacklisted\r\n\t\r\nFROM spree_users u\r\nleft join spree_user_authentications sua on u.id = sua.user_id\r\nwhere u.updated_at >= '@{variables('max_updated_date')}';",
 									"type": "Expression"
 								}
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_inventory_modifiers",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"max_updated_date": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Product DB CDC"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/language')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "language",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"partitionOption": "None"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_DEV",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "language"
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "language"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/loyalty_member')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "Select\n  id,\n  user_id,\n  tenant_id,\n  loyalty_member_id,\n  loyalty_id,\n  created_at,\n  updated_at\nfrom spree_loyalty_members;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "loyalty_member"
-								}
-							}
-						]
-					},
-					{
-						"name": "Lookup1",
-						"type": "Lookup",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "DO $$\r\nDECLARE\r\n    max_id INT;\r\nBEGIN\r\n    -- Step 1: Get the maximum id from the 'order' table\r\n    SELECT MAX(id) INTO max_id FROM \"loyalty_member\";\r\n    \r\n    -- Step 2: Alter the sequence to restart with max_id + 1\r\n    EXECUTE 'ALTER SEQUENCE loyalty_member_id_seq RESTART WITH ' || (max_id + 1000);\r\nEND $$;\r\nSelect 'Altering Sequence ID' as Update;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "loyalty_member"
-								}
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "User DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/loyalty_member_cdc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Lookup1",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "select max(updated_at) as max_updated_date from loyalty_member;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_USER_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "loyalty_member"
-								}
-							}
-						}
-					},
-					{
-						"name": "Set variable1",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Lookup1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "max_updated_date",
-							"value": {
-								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set variable1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": {
-									"value": "Select\n  id,\n  user_id,\n  tenant_id,\n  loyalty_member_id,\n  loyalty_id,\n  created_at,\n  updated_at\nfrom spree_loyalty_members\nwhere updated_at > '@{variables('max_updated_date')}';",
-									"type": "Expression"
-								}
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_loyalty_member_cdc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"max_updated_date": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "User DB CDC"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/nutritional_facts')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "WITH json_to_extract AS\n(\n       SELECT id,\n              quantity_en AS quantity,\n              product_id,\n              created_at,\n              updated_at,\n              quantity_ar,\n              nutrients :: jsonb AS json_data\n       FROM   spree_nutritional_facts )\nSELECT    id,\n          quantity,\n          quantity_ar,\n          product_id,\n          calories,\n          total_fat,\n          saturated_fat,\n          trans_fat,\n          cholesterol,\n          total_carbohydrates,\n          sugar,\n          dietary_fiber,\n          protein,\n          salt,\n          sodium,\n          iron,\n          calcium,\n          vitamin_a,\n          vitamin_c,\n          vitamin_d,\n          ph,\n          created_at,\n          updated_at\nFROM      json_to_extract\nLEFT JOIN lateral\n          (\n                 Select ( Regexp_matches( json_data :: text, 'calories:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]            AS calories,\n                        ( regexp_matches( json_data :: text, 'total_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS total_fat,\n                        ( regexp_matches( json_data :: text, 'saturated_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]       AS saturated_fat,\n                        ( regexp_matches( json_data :: text, 'trans_fat:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS trans_fat,\n                        ( regexp_matches( json_data :: text, 'cholesterol:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]         AS cholesterol,\n                        ( regexp_matches( json_data :: text, 'total_carbohydrates:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1] AS total_carbohydrates,\n                        ( regexp_matches( json_data :: text, 'sugar:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]               AS sugar,\n                        ( regexp_matches( json_data :: text, 'fiber:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]               AS dietary_fiber,\n                        ( regexp_matches( json_data :: text, 'protein:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]             AS protein,\n                        ( regexp_matches( json_data :: text, 'salt:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                AS salt,\n                        ( regexp_matches( json_data :: text, 'sodium:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]              AS sodium,\n                        ( regexp_matches( json_data :: text, 'iron:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                AS iron,\n                        ( regexp_matches( json_data :: text, 'calcium:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]             AS calcium,\n                        ( regexp_matches( json_data :: text, 'vitamin_a:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_a,\n                        ( regexp_matches( json_data :: text, 'vitamin_c:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_c,\n                        ( regexp_matches( json_data :: text, 'vitamin_d:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]           AS vitamin_d,\n                        ( regexp_matches( json_data :: text, 'ph:\\s*([\\d.]+)(?:\\s*(kcal|g|mg))?' ) ) [1]                  AS ph ) AS nutrient_values\nON        true\nORDER BY  id ASC;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "quantity",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "quantity",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "quantity_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "quantity_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "calories",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "calories",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "total_fat",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "total_fat",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "saturated_fat",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "saturated_fat",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "trans_fat",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "trans_fat",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "cholesterol",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "cholesterol",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "total_carbohydrates",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "total_carbohydrates",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "sugar",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "sugar",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "dietary_fiber",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "dietary_fiber",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "protein",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "protein",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "salt",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "salt",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "sodium",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "sodium",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "iron",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "iron",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "calcium",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "calcium",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "vitamin_a",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "vitamin_a",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "vitamin_c",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "vitamin_c",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "vitamin_d",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "vitamin_d",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "ph",
-											"type": "String",
-											"physicalType": "text"
-										},
-										"sink": {
-											"name": "ph",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "nutritional_facts"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/offline_product')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT id,\n\tCOALESCE(sku, '') AS sku,\n       COALESCE(Cast(price AS DOUBLE PRECISION),0) as price,\n       created_at,\n       updated_at,\n\tCOALESCE(name_en, '') AS name,\n       1 AS country_id,\n       1 AS order\nFROM   spree_custom_products;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "sku",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "sku",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "price",
-											"type": "Double",
-											"physicalType": "double precision"
-										},
-										"sink": {
-											"name": "price",
-											"type": "Double",
-											"physicalType": "double precision"
-										}
-									},
-									{
-										"source": {
-											"name": "country_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "country_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "offline_product"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/offline_product_barcode')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT \r\n    id AS offline_product_id,\r\n    CASE \r\n        WHEN (barcode_element ~ E'^\\\\d+$') THEN CAST(barcode_element AS BIGINT)\r\n        ELSE -1\r\n    END AS barcode,\r\n    1 AS \"order\"\r\nFROM   \r\n    spree_custom_products\r\nCROSS JOIN LATERAL unnest(barcodes) AS barcode_element\r\nORDER BY \r\n    id DESC;"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "barcode",
-											"type": "Int64",
-											"physicalType": "bigint"
-										},
-										"sink": {
-											"name": "barcode",
-											"type": "Int64",
-											"physicalType": "bigint"
-										}
-									},
-									{
-										"source": {
-											"name": "offline_product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "offline_product_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "order",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "order",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "offline_product_barcode"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/offline_product_cdc')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Lookup1",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "AzurePostgreSqlSource",
-								"query": "select max(updated_at) as max_updated_date from offline_product;",
-								"partitionOption": "None"
-							},
-							"dataset": {
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "offline_product"
-								}
-							}
-						}
-					},
-					{
-						"name": "Set variable1",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Lookup1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "max_updated_date",
-							"value": {
-								"value": "@activity('Lookup1').output.firstRow.max_updated_date",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [
-							{
-								"activity": "Set variable1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": {
-									"value": "SELECT id,\r\n\tCOALESCE(sku, '') AS sku,\r\n       COALESCE(Cast(price AS DOUBLE PRECISION),0) as price,\r\n       created_at,\r\n       updated_at,\r\n\tCOALESCE(name_en, '') AS name,\r\n       1 AS country_id,\r\n       1 AS order\r\nFROM   spree_custom_products\r\nwhere updated_at > '@{variables('max_updated_date')}';",
-									"type": "Expression"
-								}
-							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobStorageWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					},
-					{
-						"name": "Data flow1",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [
-							{
-								"activity": "Copy data1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_offline_product_cdc",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Delete1",
-						"type": "Delete",
-						"dependsOn": [
-							{
-								"activity": "Data flow1",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "DS_Intermiadate_Result",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"enableLogging": false,
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"max_updated_date": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Product DB CDC"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/option_type')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "select sot.id, \n\tsott1.name as name_en,\n\tcoalesce(sott2.name,'') as name_ar,\n\tcoalesce(sott1.presentation,'') as presentation_en,\n\tcoalesce(sott2.presentation,'') as presentation_ar,\n    sot.created_at,\n    sot.updated_at\n\t\nfrom spree_option_types sot\nleft join spree_option_type_translations sott1 on sot.id = sott1.spree_option_type_id\nand sott1.locale='en'\nleft join spree_option_type_translations sott2 on sot.id = sott2.spree_option_type_id\nand sott2.locale='ar';"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "name_en",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name_en",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "name_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "presentation_en",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "presentation_en",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "presentation_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "presentation_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "option_type"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/option_value')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy data1",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT sov.id,\n       coalesce(sovt1.name,'') as name,\n       position,\n\t   coalesce(sovt1.presentation,'') as presentation_en,\n       coalesce(sovt2.presentation,'') AS presentation_ar,\n       sov.option_type_id,\n       sov.created_at,\n       sov.updated_at\nFROM   spree_option_values sov\nleft join spree_option_value_translations sovt1\non sov.id = sovt1.spree_option_value_id and sovt1.locale='en'\nleft join spree_option_value_translations sovt2\non sov.id = sovt2.spree_option_value_id and sovt2.locale='ar';"
-							},
-							"sink": {
-								"type": "AzurePostgreSQLSink",
-								"writeBatchSize": 1000000,
-								"writeBatchTimeout": "00:30:00",
-								"writeMethod": "CopyCommand"
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "option_type_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "option_type_id",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "name",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "presentation_en",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "presentation_en",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "presentation_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										},
-										"sink": {
-											"name": "presentation_ar",
-											"type": "String",
-											"physicalType": "character varying"
-										}
-									},
-									{
-										"source": {
-											"name": "position",
-											"type": "Int32",
-											"physicalType": "integer"
-										},
-										"sink": {
-											"name": "position",
-											"type": "Int32",
-											"physicalType": "integer"
-										}
-									},
-									{
-										"source": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "created_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									},
-									{
-										"source": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										},
-										"sink": {
-											"name": "updated_at",
-											"type": "DateTime",
-											"physicalType": "timestamp without time zone"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_V1_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
-								"type": "DatasetReference",
-								"parameters": {
-									"table_name": "option_value"
-								}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"folder": {
-					"name": "Product DB"
-				},
-				"annotations": []
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/order')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "order db",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "1.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "PostgreSqlV2Source",
-								"query": "SELECT distinct\n    so.id,\n    so.item_total,\n    so.total,\n    CASE\n        WHEN so.state='delivery' THEN 'delivered'\n        WHEN so.state='picking_and_staging_in_progress' THEN 'pending'\n        WHEN so.state='payment' THEN 'pending'\n        WHEN so.state='complete' THEN 'completed'\n        WHEN so.state='confirm' THEN 'pending'\n--         WHEN so.state='cart' THEN 'pending'\n        WHEN so.state='canceled' THEN 'customer_cancelled'\n    END AS status,\n    so.user_id,\n    so.completed_at,\n    so.bill_address_id,\n    so.ship_address_id,\n    so.payment_total,\n    so.created_at,\n    so.updated_at,\n    so.currency,\n    so.item_count,\n\tso.canceled_at as cancelled_at,\n    so.canceler_id as cancelled_by,\n\tCASE WHEN so.delivery_method='home_delivery' THEN 1\n\tWHEN so.delivery_method='store_pick_up' THEN 2\n\tELSE NULL END as delivery_option_id,\n\tc.cancel_reason,\n\te.city,\n    1 as language_id,\n\tCOALESCE(e.country_id,'1') as country_id,\n\tsp_max.payment_method_id as payment_option_id\n\t\nfrom spree_orders so\nLEFT JOIN spree_fulfilments c ON c.order_id = so.id\nLEFT JOIN spree_user_addresses d ON d.user_id = so.user_id AND d.default = 'true'\nLEFT JOIN spree_addresses e ON e.id = d.address_id\nLEFT JOIN LATERAL (\n    SELECT *\n    FROM spree_payments sp\n    LEFT JOIN spree_payment_methods spm ON spm.id = sp.payment_method_id\n    WHERE sp.order_id = so.id\n\t AND (\n\t\t (SELECT COUNT(*) FROM spree_payments WHERE order_id = so.id) <= 1 OR\n\t\tspm.type NOT IN ('Spree::Gateway::LoyaltyPoint', 'Spree::PaymentMethod::StoreCredit')\n\t )\n    ORDER BY sp.created_at DESC \n    LIMIT 1\n) sp_max ON true\nwhere so.state != 'cart'"
 							},
 							"sink": {
 								"type": "ParquetSink",
 								"storeSettings": {
 									"type": "AzureBlobStorageWriteSettings",
-									"copyBehavior": "FlattenHierarchy"
+									"copyBehavior": "PreserveHierarchy"
 								},
 								"formatSettings": {
 									"type": "ParquetWriteSettings"
@@ -3002,6 +2529,176 @@
 							"enableStaging": false,
 							"translator": {
 								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "is_deleted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_deleted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "user_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "user",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "email",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "password_updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp with time zone"
+										},
+										"sink": {
+											"name": "password_updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "login_type",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "login_type",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "social_id",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "social_id",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "is_email_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_email_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "mobile_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "mobile_verified",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "password_salt",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "password_salt",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "password",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "password",
+											"type": "String",
+											"physicalType": "text"
+										}
+									},
+									{
+										"source": {
+											"name": "blacklisted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										},
+										"sink": {
+											"name": "is_blacklisted",
+											"type": "Boolean",
+											"physicalType": "boolean"
+										}
+									},
+									{
+										"source": {
+											"name": "spree_api_key",
+											"type": "String",
+											"physicalType": "character varying"
+										},
+										"sink": {
+											"name": "spree_api_key",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									}
+								],
 								"typeConversion": true,
 								"typeConversionSettings": {
 									"allowDataTruncation": true,
@@ -3025,11 +2722,35 @@
 						]
 					},
 					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "fetchmaxupdateddate",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "max_updated_date",
+							"value": {
+								"value": "@activity('fetchmaxupdateddate').output.firstRow.max_updated_date",
+								"type": "Expression"
+							}
+						}
+					},
+					{
 						"name": "Data flow1",
 						"type": "ExecuteDataFlow",
 						"dependsOn": [
 							{
-								"activity": "order db",
+								"activity": "Copy data1",
 								"dependencyConditions": [
 									"Succeeded"
 								]
@@ -3045,13 +2766,11 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataflow": {
-								"referenceName": "order",
+								"referenceName": "df_auth_user_cdc",
 								"type": "DataFlowReference",
 								"parameters": {},
 								"datasetParameters": {
 									"source1": {},
-									"city": {},
-									"ordercancellationreason": {},
 									"sink1": {}
 								}
 							},
@@ -3100,8 +2819,268 @@
 				"policy": {
 					"elapsedTimeMetric": {}
 				},
+				"variables": {
+					"max_updated_date": {
+						"type": "String"
+					}
+				},
 				"folder": {
-					"name": "Order DB"
+					"name": "Auth DB CDC"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bin_category')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \n  id, \n  tag AS category, \n  created_at, \n  updated_at,\n  Upper(tag) as code\nFROM \n  spree_bin_categories;"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "bin_category"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/brand')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "PostgreSqlV2Source",
+								"query": "SELECT \r\n  rt.id,\r\n  COALESCE(rt.name_en,'') as name_en,\r\n  COALESCE(CASE\r\n  \tWHEN LENGTH(rt.name_en) < 5 THEN UPPER(REGEXP_REPLACE(TRANSLATE(rt.name_en, ' ', '_'), '[^a-zA-Z0-9_]', '', 'g'))||'_' || rt.id\r\n\tELSE UPPER(SUBSTRING(REGEXP_REPLACE(TRANSLATE(rt.name_en, ' ', ''), '[^a-zA-Z0-9]', '', 'g'), 1, 1)) ||\r\n           UPPER(SUBSTRING(REGEXP_REPLACE(SUBSTRING(REGEXP_REPLACE(TRANSLATE(rt.name_en, ' ', ''), '[^a-zA-Z0-9]', ' ', 'g'), 2), ' ', ''), 1, 1)) ||\r\n           '_' || rt.id\r\n  END,'') AS code,\r\n  rt.created_at,\r\n  rt.updated_at,\r\n  rt.temp_taxon_id,\r\n  COALESCE(rt.name_ar,'') as name_ar\r\nFROM (SELECT \r\n    ROW_NUMBER() OVER () AS id,\r\n    st.id AS temp_taxon_id,\r\n    MAX(CASE WHEN stt.locale = 'en' THEN stt.name END) AS name_en,\r\n    MAX(CASE WHEN stt.locale = 'ar' THEN stt.name END) AS name_ar,\r\n    st.created_at,\r\n    st.updated_at\r\nFROM spree_taxons st\r\nLEFT JOIN spree_taxon_translations stt ON stt.spree_taxon_id = st.id\r\nWHERE st.parent_id in (\r\n  select st.id as brand_taxon_id from spree_taxons st \r\n  join spree_taxon_translations stt on stt.spree_taxon_id = st.id and locale = 'en'\r\n  where stt.\"name\"  = 'Brands'\r\n)\r\nGROUP BY st.id) as rt\r\norder by rt.temp_taxon_id asc"
+							},
+							"sink": {
+								"type": "AzurePostgreSQLSink",
+								"writeBatchSize": 1000000,
+								"writeBatchTimeout": "00:30:00",
+								"writeMethod": "CopyCommand"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "id",
+											"type": "Int64",
+											"physicalType": "bigint"
+										},
+										"sink": {
+											"name": "id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									},
+									{
+										"source": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name_en",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "code",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "code",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "created_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										},
+										"sink": {
+											"name": "updated_at",
+											"type": "DateTime",
+											"physicalType": "timestamp without time zone"
+										}
+									},
+									{
+										"source": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "text"
+										},
+										"sink": {
+											"name": "name_ar",
+											"type": "String",
+											"physicalType": "character varying"
+										}
+									},
+									{
+										"source": {
+											"name": "temp_taxon_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										},
+										"sink": {
+											"name": "temp_taxon_id",
+											"type": "Int32",
+											"physicalType": "integer"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_V1_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "brand"
+								}
+							}
+						]
+					},
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzurePostgreSqlSource",
+								"query": "alter table brand add column temp_taxon_id int;\nSELECT 'Adding Temp Texon' as UpdateTaxon;",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_V2_PRODUCT_DB_PRODUCTION",
+								"type": "DatasetReference",
+								"parameters": {
+									"table_name": "brand"
+								}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Product DB/brand and product pipelines"
 				},
 				"annotations": []
 			},

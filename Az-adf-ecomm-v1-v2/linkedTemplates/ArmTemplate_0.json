@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "Az-adf-ecomm-v1-v2"
 		},
+		"LS_AWS_Image_Source_secretAccessKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'secretAccessKey' of 'LS_AWS_Image_Source'"
+		},
 		"LS_CrossDB_Connection_Storage_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_CrossDB_Connection_Storage'"
@@ -14,10 +18,6 @@
 		"LS_V1_PRODUCTION_password": {
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'LS_V1_PRODUCTION'"
-		},
-		"LS_AWS_Image_Source_secretAccessKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'secretAccessKey' of 'LS_AWS_Image_Source'"
 		},
 		"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
 			"type": "secureString",
@@ -28,6 +28,16 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		},
+		"LS_V2_AUTH_DB_STAGE_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_STAGE'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-stage;UID=eccommercepostgres;EncryptionMethod=0"
+		},
+		"LS_V2_ORDER_DB_STAGE_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_ORDER_DB_STAGE'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=order-db-stage;UID=eccommercepostgres;EncryptionMethod=0"
 		},
 		"LS_V2_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
@@ -44,10 +54,19 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=product-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_V2_STAGE_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_STAGE'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=product-db-stage;UID=eccommercepostgres;EncryptionMethod=0"
+		},
 		"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
+		},
+		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+			"type": "string",
+			"defaultValue": "AKIAUMMQEMX5VPZSYA6E"
 		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"type": "string",
@@ -65,15 +84,42 @@
 			"type": "string",
 			"defaultValue": "readonly_cred"
 		},
-		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+		"LS_V1_DEV_properties_typeProperties_server": {
 			"type": "string",
-			"defaultValue": "AKIAUMMQEMX5VPZSYA6E"
+			"defaultValue": "ec2-52-210-154-220.eu-west-1.compute.amazonaws.com"
+		},
+		"LS_V1_DEV_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "d23es3el7cts8g"
+		},
+		"LS_V1_DEV_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "ueoedg6blrr0n4"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AWS_Image_Source')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AmazonS3",
+				"typeProperties": {
+					"serviceUrl": "https://s3.amazonaws.com",
+					"accessKeyId": "[parameters('LS_AWS_Image_Source_properties_typeProperties_accessKeyId')]",
+					"secretAccessKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_AWS_Image_Source_secretAccessKey')]"
+					},
+					"authenticationType": "AccessKey"
+				}
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/LS_CrossDB_Connection_Storage')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -125,23 +171,93 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/LS_AWS_Image_Source')]",
-			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"name": "[concat(parameters('factoryName'), '/default')]",
+			"type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
+			"apiVersion": "2018-06-01",
+			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AWS_Source_Image')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"annotations": [],
-				"type": "AmazonS3",
-				"typeProperties": {
-					"serviceUrl": "https://s3.amazonaws.com",
-					"accessKeyId": "[parameters('LS_AWS_Image_Source_properties_typeProperties_accessKeyId')]",
-					"secretAccessKey": {
-						"type": "SecureString",
-						"value": "[parameters('LS_AWS_Image_Source_secretAccessKey')]"
+				"description": "It describes the file in the data source store.",
+				"linkedServiceName": {
+					"referenceName": "LS_AWS_Image_Source",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Bucket": {
+						"type": "String"
 					},
-					"authenticationType": "AccessKey"
+					"Directory": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Image DataSet"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AmazonS3Location",
+						"bucketName": {
+							"value": "@{dataset().Bucket}",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@{dataset().Directory}",
+							"type": "Expression"
+						}
+					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AWS_Image_Source')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Azure_Destination_Image')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "It describes the destination store.",
+				"linkedServiceName": {
+					"referenceName": "LS_CrossDB_Connection_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Container": {
+						"type": "String"
+					},
+					"Directory": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Image DataSet"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"folderPath": {
+							"value": "@{dataset().Directory}",
+							"type": "Expression"
+						},
+						"container": {
+							"value": "@{dataset().Container}",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_CrossDB_Connection_Storage')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/DS_Intermiadate_Result')]",
@@ -186,6 +302,34 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/LS_V1_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "PostgreSqlV2",
+				"typeProperties": {
+					"server": "[parameters('LS_V1_DEV_properties_typeProperties_server')]",
+					"port": 5432,
+					"database": "[parameters('LS_V1_DEV_properties_typeProperties_database')]",
+					"username": "[parameters('LS_V1_DEV_properties_typeProperties_username')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "v1-dev-password"
+					},
+					"sslMode": 2,
+					"authenticationType": "Basic"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_DEV_SERVER')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -217,6 +361,52 @@
 				"type": "AzurePostgreSql",
 				"typeProperties": {
 					"connectionString": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_AUTH_DB_STAGE')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_AUTH_DB_STAGE_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_ORDER_DB_STAGE')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_ORDER_DB_STAGE_connectionString')]",
 					"password": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
@@ -301,6 +491,29 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/LS_V2_STAGE')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzurePostgreSql",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_V2_STAGE_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_Danube_Key_Vault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "V2-PRODUCTION-SERVER-PASSWORD"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_Danube_Key_Vault')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/LS_V2_USER_DB_PRODUCTION_SERVER')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -324,404 +537,110 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/AWS_Source_Image')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
+			"name": "[concat(parameters('factoryName'), '/Move_Image_Files')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"description": "It describes the file in the data source store.",
-				"linkedServiceName": {
-					"referenceName": "LS_AWS_Image_Source",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"Bucket": {
-						"type": "String"
-					},
-					"Directory": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "Binary",
-				"typeProperties": {
-					"location": {
-						"type": "AmazonS3Location",
-						"bucketName": {
-							"value": "@{dataset().Bucket}",
-							"type": "Expression"
+				"description": "Move files from one folder to another folder",
+				"activities": [
+					{
+						"name": "Moving_The _Image_Files",
+						"description": "Copy a file from the source store to the destination store.",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
 						},
-						"folderPath": {
-							"value": "@{dataset().Directory}",
-							"type": "Expression"
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_AWS_Image_Source')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Azure_Destination_Image')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "It describes the destination store.",
-				"linkedServiceName": {
-					"referenceName": "LS_CrossDB_Connection_Storage",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"Container": {
-						"type": "String"
-					},
-					"Directory": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"type": "Binary",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobStorageLocation",
-						"folderPath": {
-							"value": "@{dataset().Directory}",
-							"type": "Expression"
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "AmazonS3ReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "*",
+									"wildcardFileName": "*",
+									"deleteFilesAfterCompletion": false
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								},
+								"recursive": false
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								}
+							},
+							"enableStaging": false,
+							"dataIntegrationUnits": 0
 						},
-						"container": {
-							"value": "@{dataset().Container}",
-							"type": "Expression"
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_CrossDB_Connection_Storage')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_AUTH_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_AUTH_DB_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_ORDER_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [
-					{
-						"name": "id",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "order_id",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "address_id",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "is_bill_address",
-						"type": "boolean",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "city",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "country",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "district",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "type",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "formatted_address",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "latitude",
-						"type": "double precision",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "longitude",
-						"type": "double precision",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "is_default",
-						"type": "boolean",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "street_no",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "area",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "postal_code",
-						"type": "integer",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "delivery_instruction",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "created_at",
-						"type": "timestamp without time zone",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "updated_at",
-						"type": "timestamp without time zone",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "deleted_at",
-						"type": "timestamp without time zone",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "is_verified",
-						"type": "boolean",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "image",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
-					},
-					{
-						"name": "comments",
-						"type": "character varying",
-						"precision": 0,
-						"scale": 0
+						"inputs": [
+							{
+								"referenceName": "AWS_Source_Image",
+								"type": "DatasetReference",
+								"parameters": {
+									"Bucket": {
+										"value": "@pipeline().parameters.SourceStore_Location",
+										"type": "Expression"
+									},
+									"Directory": {
+										"value": "@pipeline().parameters.SourceStore_Directory",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Azure_Destination_Image",
+								"type": "DatasetReference",
+								"parameters": {
+									"Container": {
+										"value": "@pipeline().parameters.DestinationStore_Location",
+										"type": "Expression"
+									},
+									"Directory": {
+										"value": "@pipeline().parameters.DestinationStore_Directory",
+										"type": "Expression"
+									}
+								}
+							}
+						]
 					}
 				],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_PRODUCT_DB_DEV')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_PRODUCT_DB_DEV_SERVER",
-					"type": "LinkedServiceReference"
+				"policy": {
+					"elapsedTimeMetric": {}
 				},
 				"parameters": {
-					"table_name": {
-						"type": "string"
+					"SourceStore_Location": {
+						"type": "String",
+						"defaultValue": "imagemigration-to-azureaccount"
+					},
+					"SourceStore_Directory": {
+						"type": "String",
+						"defaultValue": "images"
+					},
+					"DestinationStore_Location": {
+						"type": "String",
+						"defaultValue": "file-upload"
+					},
+					"DestinationStore_Directory": {
+						"type": "String",
+						"defaultValue": "images"
 					}
 				},
-				"folder": {
-					"name": "V2 Datasets DEV"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
+				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCT_DB_DEV_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_PRODUCT_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_PRODUCT_DB_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_PRODUCT_DB_PRODUCTION_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_DEV')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_AUTH_DB_DEV_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets DEV"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_AUTH_DB_DEV_SERVER')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/DS_V2_USER_DB_PRODUCTION')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"table_name": {
-						"type": "string"
-					}
-				},
-				"folder": {
-					"name": "V2 Datasets Production"
-				},
-				"annotations": [],
-				"type": "AzurePostgreSqlTable",
-				"schema": [],
-				"typeProperties": {
-					"schema": "public",
-					"table": {
-						"value": "@dataset().table_name",
-						"type": "Expression"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_V2_USER_DB_PRODUCTION_SERVER')]"
+				"[concat(variables('factoryId'), '/datasets/AWS_Source_Image')]",
+				"[concat(variables('factoryId'), '/datasets/Azure_Destination_Image')]"
 			]
 		}
 	]

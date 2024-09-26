@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "Az-adf-ecomm-v1-v2"
 		},
+		"LS_AWS_Image_Source_secretAccessKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'secretAccessKey' of 'LS_AWS_Image_Source'"
+		},
 		"LS_CrossDB_Connection_Storage_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_CrossDB_Connection_Storage'"
@@ -25,6 +29,16 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_V2_AUTH_DB_STAGE_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_AUTH_DB_STAGE'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=auth-db-stage;UID=eccommercepostgres;EncryptionMethod=0"
+		},
+		"LS_V2_ORDER_DB_STAGE_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_ORDER_DB_STAGE'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=order-db-stage;UID=eccommercepostgres;EncryptionMethod=0"
+		},
 		"LS_V2_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCTION_SERVER'",
@@ -40,18 +54,35 @@
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_PRODUCT_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=product-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
+		"LS_V2_STAGE_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_V2_STAGE'",
+			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=product-db-stage;UID=eccommercepostgres;EncryptionMethod=0"
+		},
 		"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'LS_V2_USER_DB_PRODUCTION_SERVER'",
 			"defaultValue": "Host=ecommerce20.postgres.database.azure.com;Port=5432;Database=user-db-prod;UID=eccommercepostgres;EncryptionMethod=0"
 		},
-		"LS_AWS_Image_Source_secretAccessKey": {
-			"type": "secureString",
-			"metadata": "Secure string for 'secretAccessKey' of 'LS_AWS_Image_Source'"
+		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+			"type": "string",
+			"defaultValue": "AKIAUMMQEMX5VPZSYA6E"
 		},
 		"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 			"type": "string",
 			"defaultValue": "https://azecom2np-keyvault.vault.azure.net/"
+		},
+		"LS_V1_DEV_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ec2-52-210-154-220.eu-west-1.compute.amazonaws.com"
+		},
+		"LS_V1_DEV_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "d23es3el7cts8g"
+		},
+		"LS_V1_DEV_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "ueoedg6blrr0n4"
 		},
 		"LS_V1_PRODUCTION_properties_typeProperties_server": {
 			"type": "string",
@@ -64,10 +95,6 @@
 		"LS_V1_PRODUCTION_properties_typeProperties_username": {
 			"type": "string",
 			"defaultValue": "readonly_cred"
-		},
-		"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
-			"type": "string",
-			"defaultValue": "AKIAUMMQEMX5VPZSYA6E"
 		},
 		"containerUri": {
 			"type": "string",
@@ -96,20 +123,26 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
+					"LS_AWS_Image_Source_secretAccessKey": {
+						"value": "[parameters('LS_AWS_Image_Source_secretAccessKey')]"
+					},
 					"LS_CrossDB_Connection_Storage_connectionString": {
 						"value": "[parameters('LS_CrossDB_Connection_Storage_connectionString')]"
 					},
 					"LS_V1_PRODUCTION_password": {
 						"value": "[parameters('LS_V1_PRODUCTION_password')]"
 					},
-					"LS_AWS_Image_Source_secretAccessKey": {
-						"value": "[parameters('LS_AWS_Image_Source_secretAccessKey')]"
-					},
 					"LS_V2_AUTH_DB_DEV_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_AUTH_DB_DEV_SERVER_connectionString')]"
 					},
 					"LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_AUTH_DB_PRODUCTION_SERVER_connectionString')]"
+					},
+					"LS_V2_AUTH_DB_STAGE_connectionString": {
+						"value": "[parameters('LS_V2_AUTH_DB_STAGE_connectionString')]"
+					},
+					"LS_V2_ORDER_DB_STAGE_connectionString": {
+						"value": "[parameters('LS_V2_ORDER_DB_STAGE_connectionString')]"
 					},
 					"LS_V2_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_PRODUCTION_SERVER_connectionString')]"
@@ -120,8 +153,14 @@
 					"LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_PRODUCT_DB_PRODUCTION_SERVER_connectionString')]"
 					},
+					"LS_V2_STAGE_connectionString": {
+						"value": "[parameters('LS_V2_STAGE_connectionString')]"
+					},
 					"LS_V2_USER_DB_PRODUCTION_SERVER_connectionString": {
 						"value": "[parameters('LS_V2_USER_DB_PRODUCTION_SERVER_connectionString')]"
+					},
+					"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
+						"value": "[parameters('LS_AWS_Image_Source_properties_typeProperties_accessKeyId')]"
 					},
 					"LS_Danube_Key_Vault_properties_typeProperties_baseUrl": {
 						"value": "[parameters('LS_Danube_Key_Vault_properties_typeProperties_baseUrl')]"
@@ -135,8 +174,14 @@
 					"LS_V1_PRODUCTION_properties_typeProperties_username": {
 						"value": "[parameters('LS_V1_PRODUCTION_properties_typeProperties_username')]"
 					},
-					"LS_AWS_Image_Source_properties_typeProperties_accessKeyId": {
-						"value": "[parameters('LS_AWS_Image_Source_properties_typeProperties_accessKeyId')]"
+					"LS_V1_DEV_properties_typeProperties_server": {
+						"value": "[parameters('LS_V1_DEV_properties_typeProperties_server')]"
+					},
+					"LS_V1_DEV_properties_typeProperties_database": {
+						"value": "[parameters('LS_V1_DEV_properties_typeProperties_database')]"
+					},
+					"LS_V1_DEV_properties_typeProperties_username": {
+						"value": "[parameters('LS_V1_DEV_properties_typeProperties_username')]"
 					}
 				}
 			},
@@ -260,6 +305,46 @@
 			},
 			"dependsOn": [
 				"[resourceId('Microsoft.Resources/deployments', 'Az-adf-ecomm-v1-v2_ArmTemplate_5')]"
+			]
+		},
+		{
+			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_7",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_7.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'Az-adf-ecomm-v1-v2_ArmTemplate_6')]"
+			]
+		},
+		{
+			"name": "Az-adf-ecomm-v1-v2_ArmTemplate_8",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_8.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'Az-adf-ecomm-v1-v2_ArmTemplate_7')]"
 			]
 		}
 	]
