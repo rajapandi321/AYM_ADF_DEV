@@ -1,0 +1,159 @@
+{
+	"name": "df_order_shipment_cdc",
+	"properties": {
+		"folder": {
+			"name": "Order CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "deliverytype"
+				},
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_USER_DB_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "timeslot"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_PRODUCTION_SERVER",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "selectdeliverytype"
+				},
+				{
+					"name": "selecttimeslot"
+				},
+				{
+					"name": "joindeliverytype"
+				},
+				{
+					"name": "jointimeslots"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          order_id as integer,",
+				"          order_status as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          tax_total as double,",
+				"          total as decimal(38,18),",
+				"          start_time as string,",
+				"          end_time as string,",
+				"          day_of_week as string,",
+				"          delivery_option_id as integer,",
+				"          order_type as string,",
+				"          supermarket_id as integer,",
+				"          delivery_date as timestamp,",
+				"          delivery_charges as decimal(38,18),",
+				"          is_delivery_on_hold as boolean,",
+				"          processing_start_at as timestamp,",
+				"          row_num as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source(output(",
+				"          id as integer,",
+				"          name as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'delivery_type',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> deliverytype",
+				"source(output(",
+				"          id as integer,",
+				"          start_time as string,",
+				"          end_time as string,",
+				"          country_id as integer,",
+				"          delivery_option_id as integer,",
+				"          day_of_week as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          is_enabled as boolean",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     tableName: 'time_slot',",
+				"     schemaName: 'public',",
+				"     store: 'postgres',",
+				"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
+				"jointimeslots alterRow() ~> alterRow1",
+				"deliverytype select(mapColumn(",
+				"          delivery_type_id = id,",
+				"          delivery_type_name = name",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectdeliverytype",
+				"timeslot select(mapColumn(",
+				"          id,",
+				"          start_time,",
+				"          end_time,",
+				"          delivery_option_id,",
+				"          day_of_week",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selecttimeslot",
+				"source1, selectdeliverytype join(order_type == delivery_type_name,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joindeliverytype",
+				"joindeliverytype, selecttimeslot join(source1@start_time == selecttimeslot@start_time",
+				"     && source1@end_time == selecttimeslot@end_time",
+				"     && source1@delivery_option_id == selecttimeslot@delivery_option_id",
+				"     && source1@day_of_week == selecttimeslot@day_of_week,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> jointimeslots",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1"
+			]
+		}
+	}
+}
