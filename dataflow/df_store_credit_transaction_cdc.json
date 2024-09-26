@@ -1,0 +1,96 @@
+{
+	"name": "df_store_credit_transaction_cdc",
+	"properties": {
+		"folder": {
+			"name": "Order CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_ORDER_DB_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          store_credit_id as integer,",
+				"          action as string,",
+				"          amount as decimal(38,18),",
+				"          user_total_amount as decimal(38,18),",
+				"          authorization_code as string,",
+				"          update_reason_id as integer,",
+				"          originator_type as string,",
+				"          originator_id as integer,",
+				"          currency as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow() ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          store_credit_id as integer,",
+				"          action as string,",
+				"          amount as decimal(10,2),",
+				"          user_total_amount as decimal(10,2),",
+				"          authorization_code as string,",
+				"          update_reason_id as integer,",
+				"          originator_type as string,",
+				"          originator_id as integer,",
+				"          currency as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'store_credit_transaction',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          store_credit_id,",
+				"          action,",
+				"          amount,",
+				"          user_total_amount,",
+				"          authorization_code,",
+				"          update_reason_id,",
+				"          originator_type,",
+				"          originator_id,",
+				"          currency,",
+				"          created_at,",
+				"          updated_at",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
