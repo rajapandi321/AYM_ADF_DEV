@@ -53,6 +53,9 @@
 				},
 				{
 					"name": "jointimeslots"
+				},
+				{
+					"name": "derivedColumn1"
 				}
 			],
 			"scriptLines": [
@@ -113,7 +116,7 @@
 				"     schemaName: 'public',",
 				"     store: 'postgres',",
 				"     isolationLevel: 'READ_UNCOMMITTED') ~> timeslot",
-				"jointimeslots alterRow(upsertIf(true())) ~> alterRow1",
+				"derivedColumn1 alterRow(upsertIf(true())) ~> alterRow1",
 				"deliverytype select(mapColumn(",
 				"          delivery_type_id = id,",
 				"          delivery_type_name = name",
@@ -142,6 +145,8 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> jointimeslots",
+				"jointimeslots derive(formatted_time_slot = concat(source1@start_time,'-',source1@end_time),",
+				"          delivery_type_id = coalesce(delivery_type_id,1)) ~> derivedColumn1",
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'table',",
@@ -167,7 +172,8 @@
 				"          is_delivery_on_hold,",
 				"          processing_start_at,",
 				"          delivery_type_id,",
-				"          time_slot_id",
+				"          time_slot_id,",
+				"          formatted_time_slot",
 				"     )) ~> sink1"
 			]
 		}
