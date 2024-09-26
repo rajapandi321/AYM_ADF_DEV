@@ -41,9 +41,9 @@
 				"     tableName: 'option_value',",
 				"     schemaName: 'public',",
 				"     deletable: false,",
-				"     insertable: false,",
+				"     insertable: true,",
 				"     updateable: false,",
-				"     upsertable: true,",
+				"     upsertable: false,",
 				"     store: 'postgres',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> sink1"
