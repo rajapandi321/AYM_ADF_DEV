@@ -1,0 +1,94 @@
+{
+	"name": "df_order_payment_refund_cdc",
+	"properties": {
+		"folder": {
+			"name": "Order CDC"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Intermiadate_Result",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "LS_V2_ORDER_DB_STAGE",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as integer,",
+				"          order_id as integer,",
+				"          transaction_id as string,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          amount as decimal(38,18),",
+				"          status as string,",
+				"          currency as string,",
+				"          type as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> source1",
+				"source1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          id as integer,",
+				"          order_id as integer,",
+				"          transaction_id as string,",
+				"          currency as string,",
+				"          amount as double,",
+				"          status as string,",
+				"          refunded_at as timestamp,",
+				"          approved_by as integer,",
+				"          approved_at as timestamp,",
+				"          created_at as timestamp,",
+				"          updated_at as timestamp,",
+				"          deleted_at as timestamp,",
+				"          type as string,",
+				"          error_msg as string,",
+				"          refund_action_id as string,",
+				"          order_payment_id as integer",
+				"     ),",
+				"     format: 'table',",
+				"     tableName: 'order_payment_refund',",
+				"     schemaName: 'public',",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['id'],",
+				"     store: 'postgres',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          id,",
+				"          order_id,",
+				"          transaction_id,",
+				"          currency,",
+				"          amount,",
+				"          status,",
+				"          created_at,",
+				"          updated_at,",
+				"          type",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
